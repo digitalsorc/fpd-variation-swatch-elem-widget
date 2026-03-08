@@ -180,26 +180,22 @@
                 let productId = null;
                 let productTitle = null;
 
-                // 1. Try to get the active product title from the UI first (most reliable for product swaps)
+                // 1. Try to get the active product from FPD UI (Product Swap Module)
                 if (window.jQuery) {
-                    // Look for active item in the products module
-                    const $activeItem = window.jQuery('.fpd-modules .fpd-item.fpd-active, .fpd-products .fpd-item.fpd-active');
+                    const $activeItem = window.jQuery('.fpd-item.fpd-active');
                     if ($activeItem.length) {
                         productTitle = $activeItem.find('.fpd-item-title').text().trim() || $activeItem.attr('data-title');
                         productId = $activeItem.attr('data-id') || $activeItem.data('id');
                     }
-                    
-                    // If not found, look at the current view title if available
-                    if (!productTitle) {
-                        const $viewTitle = window.jQuery('.fpd-view-title');
-                        if ($viewTitle.length) {
-                            productTitle = $viewTitle.text().trim();
-                        }
-                    }
                 }
 
-                // 2. Fallback to API methods
+                // 2. Try FPD Instance properties
                 if (fpdInstance) {
+                    if (fpdInstance.currentProduct) {
+                        productId = productId || fpdInstance.currentProduct.id || fpdInstance.currentProduct.product_id;
+                        productTitle = productTitle || fpdInstance.currentProduct.title;
+                    }
+                    
                     if (!productTitle && typeof fpdInstance.getProduct === 'function') {
                         try {
                             const currentProd = fpdInstance.getProduct();
@@ -214,22 +210,33 @@
                             console.error('[FPD Size Swatches] Error calling getProduct()', e);
                         }
                     }
+                }
 
-                    if (!productTitle && typeof fpdInstance.getProducts === 'function') {
-                        try {
-                            const products = fpdInstance.getProducts();
-                            if (products && products.length > 0) {
-                                const currentProduct = products[0]; 
-                                productId = productId || currentProduct.id || currentProduct.product_id;
-                                productTitle = productTitle || currentProduct.title;
-                            }
-                        } catch (e) {
-                            console.error('[FPD Size Swatches] Error calling getProducts()', e);
+                // 3. FALLBACK: Try WooCommerce Product Title (Makes it much easier for users!)
+                if (!productTitle) {
+                    const wcTitle = document.querySelector('.product_title, .entry-title');
+                    if (wcTitle) {
+                        productTitle = wcTitle.textContent.trim();
+                        console.log('[FPD Size Swatches] Using WooCommerce Product Title as fallback:', productTitle);
+                    }
+                }
+
+                // 4. FALLBACK: Try WooCommerce Product ID
+                if (!productId) {
+                    const wcIdInput = document.querySelector('input[name="add-to-cart"], button[name="add-to-cart"]');
+                    if (wcIdInput && wcIdInput.value) {
+                        productId = wcIdInput.value;
+                        console.log('[FPD Size Swatches] Using WooCommerce Product ID as fallback:', productId);
+                    } else {
+                        const match = document.body.className.match(/postid-(\d+)/);
+                        if (match) {
+                            productId = match[1];
+                            console.log('[FPD Size Swatches] Using WooCommerce Post ID as fallback:', productId);
                         }
                     }
                 }
 
-                console.log(`[FPD Size Swatches] Active FPD Product detected (Event: ${eventType}):`, { id: productId, title: productTitle });
+                console.log(`[FPD Size Swatches] Active Product detected (Event: ${eventType}):`, { id: productId, title: productTitle });
 
                 // If we are in the Elementor editor, ALWAYS match the first config so the user can see it
                 if (this.isEditor && (!productId && !productTitle) && this.config.products && this.config.products.length > 0) {
@@ -261,20 +268,27 @@
             let bestMatch = null;
             let bestScore = -1;
 
-            console.log('[FPD Size Swatches] Trying to match product ID:', id, 'Title:', title);
+            const safeId = id ? String(id).trim() : '';
+            const safeTitle = title ? String(title).trim() : '';
+
+            console.log('[FPD Size Swatches] Trying to match product ID:', safeId, 'Title:', safeTitle);
             console.log('[FPD Size Swatches] Available configs:', this.config.products);
 
             for (const prodConfig of this.config.products) {
                 let score = -1;
-                let hasId = !!prodConfig.id;
-                let hasPattern = !!prodConfig.pattern;
-                let idMatch = hasId && String(prodConfig.id) === String(id);
+                let configId = prodConfig.id ? String(prodConfig.id).trim() : '';
+                let configPattern = prodConfig.pattern ? String(prodConfig.pattern).trim() : '';
+                
+                let hasId = configId !== '';
+                let hasPattern = configPattern !== '';
+                
+                let idMatch = hasId && configId === safeId;
                 let patternMatch = false;
 
-                if (hasPattern && title) {
+                if (hasPattern && safeTitle) {
                     try {
-                        const regex = new RegExp(prodConfig.pattern, 'i');
-                        if (regex.test(title)) {
+                        const regex = new RegExp(configPattern, 'i');
+                        if (regex.test(safeTitle)) {
                             patternMatch = true;
                         }
                     } catch (e) {
