@@ -19,6 +19,7 @@
             this.currentSizes = [];
             this.selectedSize = '';
             this.handleProductChangeTimeout = null;
+            this.isEditor = document.body.classList.contains('elementor-editor-active');
 
             this.initHiddenInput();
             this.bindEvents();
@@ -46,21 +47,45 @@
          */
         waitForFPD() {
             let attempts = 0;
-            const maxAttempts = 40; // 20 seconds max
+            const maxAttempts = 100; // 50 seconds max
 
             const checkFPD = () => {
-                const fpdData = this.findFPDInstance();
-                
-                if (fpdData && fpdData.instance) {
-                    console.log('[FPD Size Swatches] FPD Instance found!', fpdData.element);
-                    this.bindFPDEvents(fpdData.element, fpdData.instance);
+                let fpdInstance = null;
+                let $fpdElement = null;
+
+                // 1. Check global instance
+                let globalFPD = window.fancyProductDesigner;
+                if (Array.isArray(globalFPD) && globalFPD.length > 0) {
+                    globalFPD = globalFPD[0];
+                }
+                if (globalFPD && typeof globalFPD.getProduct === 'function') {
+                    fpdInstance = globalFPD;
+                    $fpdElement = window.jQuery ? window.jQuery(this.config.selector || '.fpd-container') : null;
+                }
+
+                // 2. Check jQuery data
+                if (!fpdInstance) {
+                    const fpdData = this.findFPDInstance();
+                    if (fpdData) {
+                        fpdInstance = fpdData.instance;
+                        $fpdElement = fpdData.element;
+                    }
+                }
+
+                if (fpdInstance || attempts > 10) {
+                    // Even if we don't find the instance immediately, we bind the delegation events
+                    // so that if it loads later, we catch it.
+                    if (fpdInstance) {
+                        console.log('[FPD Size Swatches] FPD Instance found!');
+                    }
+                    this.bindFPDEvents($fpdElement, fpdInstance);
                     // Trigger initial check
-                    setTimeout(() => this.handleProductChange(fpdData.instance, 'init'), 500);
+                    setTimeout(() => this.handleProductChange(fpdInstance, 'init'), 500);
                 } else if (attempts < maxAttempts) {
                     attempts++;
                     setTimeout(checkFPD, 500);
                 } else {
-                    console.warn('[FPD Size Swatches] Could not find FPD instance after 20 seconds.');
+                    console.warn('[FPD Size Swatches] Could not find FPD instance after 50 seconds.');
                 }
             };
             checkFPD();
@@ -101,15 +126,24 @@
                 self.handleProductChange(fpdInstance, type);
             };
 
-            // Bind using jQuery on the FPD container element (Standard FPD behavior)
-            if ($fpdElement && $fpdElement.length) {
-                console.log('[FPD Size Swatches] Binding events to FPD container via jQuery...');
-                $fpdElement.on('ready productSelect productAdd', function(e) {
+            // 1. Event delegation on document.body (Survives DOM replacement when swapping products)
+            if (window.jQuery) {
+                console.log('[FPD Size Swatches] Binding events via jQuery delegation on document.body...');
+                const selectors = '.fpd-container, .fancy-product-designer, #fpd, .fpd-main';
+                window.jQuery(document.body).off('ready productSelect productAdd productCreate viewSelect', selectors);
+                window.jQuery(document.body).on('ready productSelect productAdd productCreate viewSelect', selectors, function(e) {
                     handleEvent(e);
+                });
+                
+                // Fallback: Listen for clicks on FPD items (like product thumbnails)
+                window.jQuery(document.body).off('click', '.fpd-item');
+                window.jQuery(document.body).on('click', '.fpd-item', function() {
+                    console.log('[FPD Size Swatches] FPD Item clicked (Fallback)');
+                    setTimeout(() => handleEvent({type: 'click_fallback'}), 600);
                 });
             }
 
-            // Also bind to the instance directly if supported
+            // 2. Also bind to the instance directly if supported
             if (fpdInstance && typeof fpdInstance.addEventListener === 'function') {
                 console.log('[FPD Size Swatches] Binding events directly to FPD instance...');
                 fpdInstance.addEventListener('ready', () => handleEvent({type: 'ready'}));
@@ -129,47 +163,55 @@
             }
 
             this.handleProductChangeTimeout = setTimeout(() => {
-                if (!fpdInstance) return;
-
                 let productId = null;
                 let productTitle = null;
 
-                // Try to get the active product title from the UI first (most reliable for product swaps)
+                // 1. Try to get the active product title from the UI first (most reliable for product swaps)
                 if (window.jQuery) {
-                    const $activeItem = window.jQuery('.fpd-item.fpd-active');
+                    // Look for active item in the products module
+                    const $activeItem = window.jQuery('.fpd-modules .fpd-item.fpd-active, .fpd-products .fpd-item.fpd-active');
                     if ($activeItem.length) {
                         productTitle = $activeItem.find('.fpd-item-title').text().trim() || $activeItem.attr('data-title');
-                        // Some setups store ID in data attribute
                         productId = $activeItem.attr('data-id') || $activeItem.data('id');
                     }
-                }
-
-                // Fallback to API methods
-                if (!productTitle && typeof fpdInstance.getProduct === 'function') {
-                    try {
-                        const currentProd = fpdInstance.getProduct();
-                        if (currentProd) {
-                            const prodData = Array.isArray(currentProd) && currentProd.length > 0 ? currentProd[0] : currentProd;
-                            if (prodData) {
-                                productId = productId || prodData.id || prodData.product_id || prodData.productId;
-                                productTitle = productTitle || prodData.title || prodData.productTitle;
-                            }
+                    
+                    // If not found, look at the current view title if available
+                    if (!productTitle) {
+                        const $viewTitle = window.jQuery('.fpd-view-title');
+                        if ($viewTitle.length) {
+                            productTitle = $viewTitle.text().trim();
                         }
-                    } catch (e) {
-                        console.error('[FPD Size Swatches] Error calling getProduct()', e);
                     }
                 }
 
-                if (!productTitle && typeof fpdInstance.getProducts === 'function') {
-                    try {
-                        const products = fpdInstance.getProducts();
-                        if (products && products.length > 0) {
-                            const currentProduct = products[0]; 
-                            productId = productId || currentProduct.id || currentProduct.product_id;
-                            productTitle = productTitle || currentProduct.title;
+                // 2. Fallback to API methods
+                if (fpdInstance) {
+                    if (!productTitle && typeof fpdInstance.getProduct === 'function') {
+                        try {
+                            const currentProd = fpdInstance.getProduct();
+                            if (currentProd) {
+                                const prodData = Array.isArray(currentProd) && currentProd.length > 0 ? currentProd[0] : currentProd;
+                                if (prodData) {
+                                    productId = productId || prodData.id || prodData.product_id || prodData.productId;
+                                    productTitle = productTitle || prodData.title || prodData.productTitle;
+                                }
+                            }
+                        } catch (e) {
+                            console.error('[FPD Size Swatches] Error calling getProduct()', e);
                         }
-                    } catch (e) {
-                        console.error('[FPD Size Swatches] Error calling getProducts()', e);
+                    }
+
+                    if (!productTitle && typeof fpdInstance.getProducts === 'function') {
+                        try {
+                            const products = fpdInstance.getProducts();
+                            if (products && products.length > 0) {
+                                const currentProduct = products[0]; 
+                                productId = productId || currentProduct.id || currentProduct.product_id;
+                                productTitle = productTitle || currentProduct.title;
+                            }
+                        } catch (e) {
+                            console.error('[FPD Size Swatches] Error calling getProducts()', e);
+                        }
                     }
                 }
 
@@ -179,8 +221,7 @@
                     this.matchConfig(productId, productTitle);
                 } else {
                     console.warn('[FPD Size Swatches] Could not determine active product ID or Title. Hiding widget.');
-                    this.container.style.display = 'none';
-                    this.clearSelection();
+                    this.hideWidget();
                 }
             }, 500);
         }
@@ -223,14 +264,25 @@
                     this.container.style.display = 'block';
                 } else {
                     console.log('[FPD Size Swatches] Matched config explicitly says "Show Sizes: No". Hiding widget.');
-                    this.container.style.display = 'none';
-                    this.clearSelection();
+                    this.hideWidget('Widget hidden (Show Sizes: No)');
                 }
             } else {
                 console.log('[FPD Size Swatches] No matching config found for this product. Hiding widget.');
-                this.container.style.display = 'none';
-                this.clearSelection();
+                this.hideWidget('Widget hidden (No matching config)');
             }
+        }
+
+        /**
+         * Hide the widget, but keep it visible in Elementor editor for debugging
+         */
+        hideWidget(editorMessage = 'Widget hidden') {
+            if (this.isEditor) {
+                this.container.style.display = 'block';
+                this.swatchesContainer.innerHTML = `<p style="color: #888; font-style: italic; font-size: 12px;">${editorMessage}</p>`;
+            } else {
+                this.container.style.display = 'none';
+            }
+            this.clearSelection();
         }
 
         /**
