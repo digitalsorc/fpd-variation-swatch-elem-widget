@@ -86,6 +86,16 @@
                     }
                 }
 
+                // 3. Aggressive Hunt (Run every 5 seconds if not found)
+                if (!fpdInstance && attempts > 0 && attempts % 10 === 0) {
+                    console.log('[FPD Size Swatches] Standard detection failed, aggressively hunting for FPD instance in DOM...');
+                    const hunted = this.huntForFPD();
+                    if (hunted) {
+                        fpdInstance = hunted.instance;
+                        $fpdElement = hunted.element;
+                    }
+                }
+
                 if (fpdInstance || attempts > 10) {
                     // Even if we don't find the instance immediately, we bind the delegation events
                     // so that if it loads later, we catch it.
@@ -124,6 +134,57 @@
                 }
             }
             return null;
+        }
+
+        /**
+         * Aggressively hunt for the FPD instance across all likely elements.
+         * Logs the exact selector the user should use.
+         */
+        huntForFPD() {
+            if (!window.jQuery) return null;
+            let found = null;
+            
+            // Look for common FPD classes or IDs first
+            const possibleWrappers = window.jQuery('.fpd-container, .fancy-product-designer, [id^="fpd"], [class*="fpd"], .elementor-widget-container > div');
+            
+            possibleWrappers.each(function() {
+                const $this = window.jQuery(this);
+                const fpd = $this.data('fancyProductDesigner') || $this.data('fpd');
+                if (fpd) {
+                    let suggestedSelector = '';
+                    if (this.id) {
+                        suggestedSelector = '#' + this.id;
+                    } else if (this.className) {
+                        // Create a selector from the classes, ignoring generic ones
+                        suggestedSelector = '.' + this.className.trim().split(/\s+/).join('.');
+                    }
+                    
+                    console.log('%c=================================================', 'color: #4CAF50; font-weight: bold;');
+                    console.log('%c🎯 SUCCESS! Found FPD Instance hidden in the DOM!', 'color: #4CAF50; font-weight: bold; font-size: 14px;');
+                    console.log('%c👉 PLEASE COPY AND PASTE THIS EXACT TEXT INTO THE "FPD Instance Selector" WIDGET SETTING:', 'color: #2196F3; font-weight: bold;');
+                    console.log('%c' + suggestedSelector, 'background: #eee; color: #d32f2f; font-size: 16px; padding: 5px; font-weight: bold; border: 1px solid #ccc;');
+                    console.log('%c=================================================', 'color: #4CAF50; font-weight: bold;');
+                    
+                    found = { element: $this, instance: fpd };
+                    return false; // break loop
+                }
+            });
+
+            // If still not found, check global window variables
+            if (!found) {
+                for (let key in window) {
+                    if (key.toLowerCase().includes('fancyproductdesigner') || key.toLowerCase() === 'fpd') {
+                        const val = window[key];
+                        if (val && typeof val.getProduct === 'function') {
+                             console.log('%c🎯 SUCCESS! Found FPD Instance in global variable: window.' + key, 'color: #4CAF50; font-weight: bold;');
+                             found = { element: window.jQuery(document.body), instance: val };
+                             break;
+                        }
+                    }
+                }
+            }
+            
+            return found;
         }
 
         /**
