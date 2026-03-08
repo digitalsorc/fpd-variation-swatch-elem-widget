@@ -243,61 +243,64 @@
                 let productId = null;
                 let productTitle = null;
 
-                console.log('[FPD Size Swatches] DEBUG FPD State:', {
-                    currentProduct: fpdInstance ? fpdInstance.currentProduct : null,
-                    products: fpdInstance ? fpdInstance.products : null,
-                    options: fpdInstance ? fpdInstance.options : null,
-                    currentProductIndex: fpdInstance ? fpdInstance.currentProductIndex : null
-                });
-
-                // 1. Try to extract from event arguments (productSelect often passes the product)
-                if ((eventType === 'productSelect' || eventType === 'productCreate') && arg1 && typeof arg1 === 'object') {
-                    // arg1 might be an array of views, or a product object
-                    if (Array.isArray(arg1) && arg1.length > 0 && arg1[0].options) {
-                         // It's an array of views, the product title might be in the options
-                         productTitle = arg1[0].options.productTitle || productTitle;
-                    } else if (!Array.isArray(arg1)) {
-                         productId = arg1.id || arg1.product_id || productId;
-                         productTitle = arg1.title || productTitle;
+                // Helper to safely extract from an object/array
+                const extractFromObj = (obj) => {
+                    if (!obj) return;
+                    
+                    // If it's a CustomEvent
+                    if (obj.detail) {
+                        extractFromObj(obj.detail);
                     }
-                }
 
-                // 2. Try FPD Instance properties
-                if (fpdInstance) {
-                    // Try to get from the products array
-                    if (fpdInstance.products && fpdInstance.products.length > 0) {
-                        let activeIndex = fpdInstance.currentProductIndex || 0;
-                        let activeProduct = fpdInstance.products[activeIndex];
-                        if (activeProduct) {
-                            productId = productId || activeProduct.id || activeProduct.product_id;
-                            productTitle = productTitle || activeProduct.title;
+                    // If it's an array (like an array of views)
+                    if (Array.isArray(obj) && obj.length > 0) {
+                        let firstItem = obj[0];
+                        if (firstItem && typeof firstItem === 'object') {
+                            if (firstItem.options) {
+                                productId = productId || firstItem.options.productId || firstItem.options.product_id;
+                                productTitle = productTitle || firstItem.options.productTitle || firstItem.options.product_title;
+                            }
+                            productId = productId || firstItem.productId || firstItem.product_id;
+                        }
+                        return;
+                    }
+
+                    // If it's a standard object
+                    if (typeof obj === 'object' && !Array.isArray(obj)) {
+                        productId = productId || obj.id || obj.product_id || obj.productId;
+                        productTitle = productTitle || obj.productTitle || obj.product_title || obj.title;
+                        
+                        if (obj.options) {
+                            productId = productId || obj.options.productId || obj.options.product_id;
+                            productTitle = productTitle || obj.options.productTitle || obj.options.product_title;
                         }
                     }
+                };
 
-                    // Try currentProduct property
-                    if (fpdInstance.currentProduct) {
-                        productId = productId || fpdInstance.currentProduct.id || fpdInstance.currentProduct.product_id;
-                        productTitle = productTitle || fpdInstance.currentProduct.title;
+                extractFromObj(arg1);
+                extractFromObj(arg2);
+
+                if (fpdInstance) {
+                    if (fpdInstance.products && fpdInstance.products.length > 0) {
+                        let activeIndex = fpdInstance.currentProductIndex !== undefined ? fpdInstance.currentProductIndex : 0;
+                        let activeProduct = fpdInstance.products[activeIndex];
+                        extractFromObj(activeProduct);
                     }
-                    
-                    // Try options (often contains the initial product ID)
-                    if (fpdInstance.options) {
-                        productId = productId || fpdInstance.options.productId || fpdInstance.options.product_id;
-                        productTitle = productTitle || fpdInstance.options.productTitle || fpdInstance.options.product_title;
-                    }
+                    extractFromObj(fpdInstance.currentProduct);
+                    extractFromObj(fpdInstance.options);
                 }
 
-                // 3. Try to get the active product from FPD UI (Product Swap Module)
+                // Try to get the active product from FPD UI (Product Swap Module)
                 if (window.jQuery && (!productId || !productTitle)) {
                     // Look for active items in the product list
-                    const $activeItems = window.jQuery('.fpd-item.fpd-active');
+                    const $activeItems = window.jQuery('.fpd-item.fpd-active, .fpd-product.fpd-active, .fpd-item.active');
                     $activeItems.each(function() {
                         const $this = window.jQuery(this);
                         // Ignore view items (they usually live inside .fpd-views)
                         if ($this.closest('.fpd-views').length > 0) return;
 
                         const pid = $this.attr('data-productid') || $this.attr('data-id') || $this.data('productid') || $this.data('id');
-                        const pt = $this.attr('data-title') || $this.data('title') || $this.find('.fpd-item-title').text().trim();
+                        const pt = $this.attr('data-title') || $this.data('title') || $this.find('.fpd-item-title, .fpd-product-title').text().trim();
                         
                         if (pid) productId = productId || pid;
                         if (pt) productTitle = productTitle || pt;
@@ -305,6 +308,36 @@
                 }
 
                 console.log(`[FPD Size Swatches] Active Product detected (Event: ${eventType}):`, { id: productId, title: productTitle });
+
+                // Deep Debugging if still not found
+                if (!productId && !productTitle) {
+                    let debugInfo = "N/A";
+                    if (fpdInstance && fpdInstance.products) {
+                        let activeIndex = fpdInstance.currentProductIndex !== undefined ? fpdInstance.currentProductIndex : 0;
+                        let activeProduct = fpdInstance.products[activeIndex];
+                        
+                        if (Array.isArray(activeProduct)) {
+                            debugInfo = "Array[" + activeProduct.length + "]";
+                            if (activeProduct.length > 0) {
+                                debugInfo += " keys[0]: " + Object.keys(activeProduct[0]).join(',');
+                                if (activeProduct[0].options) debugInfo += " opts[0]: " + Object.keys(activeProduct[0].options).join(',');
+                            }
+                        } else if (typeof activeProduct === 'object' && activeProduct !== null) {
+                            debugInfo = "Object keys: " + Object.keys(activeProduct).join(',');
+                        }
+                    }
+                    
+                    let domInfo = "N/A";
+                    if (window.jQuery) {
+                        const $firstItem = window.jQuery('.fpd-products .fpd-item, .fpd-products > div').first();
+                        if ($firstItem.length) {
+                            let html = $firstItem[0].outerHTML;
+                            domInfo = "Item HTML: " + html.substring(0, 250) + (html.length > 250 ? '...' : '');
+                        }
+                    }
+                    
+                    console.log('[FPD Size Swatches] Deep Debug:', { activeProductStructure: debugInfo, domSnippet: domInfo });
+                }
 
                 // If we are in the Elementor editor, ALWAYS match the first config so the user can see it
                 if (this.isEditor && (!productId && !productTitle) && this.config.products && this.config.products.length > 0) {
