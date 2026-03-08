@@ -258,38 +258,54 @@
          * @param {string} title 
          */
         matchConfig(id, title) {
-            let matchedConfig = null;
+            let bestMatch = null;
+            let bestScore = -1;
 
             console.log('[FPD Size Swatches] Trying to match product ID:', id, 'Title:', title);
             console.log('[FPD Size Swatches] Available configs:', this.config.products);
 
             for (const prodConfig of this.config.products) {
-                if (prodConfig.id && String(prodConfig.id) === String(id)) {
-                    console.log('[FPD Size Swatches] Matched by ID:', prodConfig.id);
-                    matchedConfig = prodConfig;
-                    break;
-                }
-                if (prodConfig.pattern && title) {
+                let score = -1;
+                let hasId = !!prodConfig.id;
+                let hasPattern = !!prodConfig.pattern;
+                let idMatch = hasId && String(prodConfig.id) === String(id);
+                let patternMatch = false;
+
+                if (hasPattern && title) {
                     try {
                         const regex = new RegExp(prodConfig.pattern, 'i');
                         if (regex.test(title)) {
-                            console.log('[FPD Size Swatches] Matched by Title Regex:', prodConfig.pattern);
-                            matchedConfig = prodConfig;
-                            break;
+                            patternMatch = true;
                         }
                     } catch (e) {
                         console.error('[FPD Size Swatches] Invalid regex pattern', e);
                     }
                 }
+
+                // Scoring system to find the most specific match
+                if (hasId && hasPattern) {
+                    if (idMatch && patternMatch) score = 3; // Most specific: matches both
+                } else if (hasPattern) {
+                    if (patternMatch) score = 2; // Matches pattern only
+                } else if (hasId) {
+                    if (idMatch) score = 1; // Matches ID only
+                } else {
+                    score = 0; // Fallback: no ID and no pattern set (matches everything)
+                }
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMatch = prodConfig;
+                }
             }
 
-            if (matchedConfig) {
-                if (matchedConfig.show_sizes) {
-                    console.log('[FPD Size Swatches] Showing sizes for matched config.');
-                    this.renderSizes(matchedConfig.sizes);
+            if (bestMatch) {
+                if (bestMatch.show_sizes) {
+                    console.log(`[FPD Size Swatches] Showing sizes for matched config (Score: ${bestScore}).`);
+                    this.renderSizes(bestMatch.sizes);
                     this.container.style.display = 'block';
                 } else {
-                    console.log('[FPD Size Swatches] Matched config explicitly says "Show Sizes: No". Hiding widget.');
+                    console.log(`[FPD Size Swatches] Matched config (Score: ${bestScore}) explicitly says "Show Sizes: No". Hiding widget.`);
                     this.hideWidget('Widget hidden (Show Sizes: No)');
                 }
             } else {
