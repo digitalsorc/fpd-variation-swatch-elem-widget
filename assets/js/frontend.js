@@ -242,62 +242,54 @@
                 let productTitle = null;
 
                 // 1. Try to get the active product from FPD UI (Product Swap Module)
+                // We specifically look inside .fpd-products to avoid getting View titles (like "Front"/"Back")
                 if (window.jQuery) {
-                    const $activeItem = window.jQuery('.fpd-item.fpd-active');
+                    const $activeItem = window.jQuery('.fpd-products .fpd-item.fpd-active');
                     if ($activeItem.length) {
-                        productTitle = $activeItem.find('.fpd-item-title').text().trim() || $activeItem.attr('data-title');
-                        productId = $activeItem.attr('data-id') || $activeItem.data('id');
+                        productTitle = $activeItem.find('.fpd-item-title').text().trim() || $activeItem.attr('data-title') || $activeItem.data('title');
+                        productId = $activeItem.attr('data-id') || $activeItem.data('id') || $activeItem.attr('data-productid');
                     }
                 }
 
                 // 2. Try FPD Instance properties
                 if (fpdInstance) {
+                    // Check if FPD has a currentProduct object
                     if (fpdInstance.currentProduct) {
                         productId = productId || fpdInstance.currentProduct.id || fpdInstance.currentProduct.product_id;
                         productTitle = productTitle || fpdInstance.currentProduct.title;
                     }
                     
-                    if (!productTitle && typeof fpdInstance.getProduct === 'function') {
+                    // Check FPD options (often contains the initial product ID)
+                    if (fpdInstance.options) {
+                        productId = productId || fpdInstance.options.productId || fpdInstance.options.product_id;
+                        productTitle = productTitle || fpdInstance.options.productTitle || fpdInstance.options.product_title;
+                    }
+
+                    // Check getProducts() to find the active product
+                    if ((!productId || !productTitle) && typeof fpdInstance.getProducts === 'function') {
                         try {
-                            const currentProd = fpdInstance.getProduct();
-                            if (currentProd) {
-                                const prodData = Array.isArray(currentProd) && currentProd.length > 0 ? currentProd[0] : currentProd;
-                                if (prodData) {
-                                    productId = productId || prodData.id || prodData.product_id || prodData.productId;
-                                    productTitle = productTitle || prodData.title || prodData.productTitle;
-                                }
+                            const products = fpdInstance.getProducts();
+                            if (products && products.length > 0) {
+                                // FPD usually tracks the active product index
+                                let activeIndex = fpdInstance.currentProductIndex !== undefined ? fpdInstance.currentProductIndex : 
+                                                  (fpdInstance.productIndex !== undefined ? fpdInstance.productIndex : 0);
+                                
+                                const activeProduct = products[activeIndex] || products[0];
+                                productId = productId || activeProduct.id || activeProduct.product_id;
+                                productTitle = productTitle || activeProduct.title;
                             }
                         } catch (e) {
-                            console.error('[FPD Size Swatches] Error calling getProduct()', e);
-                        }
-                    }
-                }
-
-                // 3. FALLBACK: Try WooCommerce Product Title (Makes it much easier for users!)
-                if (!productTitle) {
-                    const wcTitle = document.querySelector('.product_title, .entry-title');
-                    if (wcTitle) {
-                        productTitle = wcTitle.textContent.trim();
-                        console.log('[FPD Size Swatches] Using WooCommerce Product Title as fallback:', productTitle);
-                    }
-                }
-
-                // 4. FALLBACK: Try WooCommerce Product ID
-                if (!productId) {
-                    const wcIdInput = document.querySelector('input[name="add-to-cart"], button[name="add-to-cart"]');
-                    if (wcIdInput && wcIdInput.value) {
-                        productId = wcIdInput.value;
-                        console.log('[FPD Size Swatches] Using WooCommerce Product ID as fallback:', productId);
-                    } else {
-                        const match = document.body.className.match(/postid-(\d+)/);
-                        if (match) {
-                            productId = match[1];
-                            console.log('[FPD Size Swatches] Using WooCommerce Post ID as fallback:', productId);
+                            console.error('[FPD Size Swatches] Error calling getProducts()', e);
                         }
                     }
                 }
 
                 console.log(`[FPD Size Swatches] Active Product detected (Event: ${eventType}):`, { id: productId, title: productTitle });
+
+                // Debugging helper: If we still couldn't find it, dump the available products to the console
+                if (!productId && !productTitle && fpdInstance && typeof fpdInstance.getProducts === 'function') {
+                    console.log('[FPD Size Swatches] DEBUG: Could not find active product ID/Title. Here are all loaded FPD products:', fpdInstance.getProducts());
+                }
 
                 // If we are in the Elementor editor, ALWAYS match the first config so the user can see it
                 if (this.isEditor && (!productId && !productTitle) && this.config.products && this.config.products.length > 0) {
