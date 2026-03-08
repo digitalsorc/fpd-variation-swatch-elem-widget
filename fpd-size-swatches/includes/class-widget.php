@@ -318,18 +318,8 @@ class Widget extends Widget_Base {
 			'products'      => $config,
 		];
 
-		$display_style = $settings['default_visibility'] === 'show' ? 'block' : 'none';
-		
-		// Smart Fallback: Pre-render the first available size config if visibility is Show
-		$initial_sizes = [];
-		if ( $settings['default_visibility'] === 'show' && ! empty( $config ) ) {
-			foreach ( $config as $c ) {
-				if ( $c['show_sizes'] && ! empty( $c['sizes'] ) ) {
-					$initial_sizes = $c['sizes'];
-					break;
-				}
-			}
-		}
+		// FORCE HIDE BY DEFAULT. Only JS will show it if a match is found.
+		$display_style = 'none';
 		?>
 		<div class="fpd-sizes-swatches" 
 			data-widget-config="<?php echo esc_attr( wp_json_encode( $widget_config ) ); ?>" 
@@ -341,14 +331,7 @@ class Widget extends Widget_Base {
 			<?php endif; ?>
 			
 			<div class="fpd-swatches-container" role="group" aria-label="<?php esc_attr_e( 'Select size', 'fpd-size-swatches' ); ?>">
-				<?php foreach ( $initial_sizes as $size ) : ?>
-					<button type="button" class="fpd-swatch" data-value="<?php echo esc_attr( $size['value'] ); ?>" aria-label="<?php echo esc_attr( $size['label'] ); ?>">
-						<?php echo esc_html( $size['label'] ); ?>
-						<?php if ( ! empty( $size['price'] ) ) : ?>
-							<span class="fpd-swatch-price"> (+<?php echo esc_html( $size['price'] ); ?>)</span>
-						<?php endif; ?>
-					</button>
-				<?php endforeach; ?>
+				<!-- Buttons injected by JS -->
 			</div>
 			
 			<p class="fpd-size-validation-error" style="display:none;">

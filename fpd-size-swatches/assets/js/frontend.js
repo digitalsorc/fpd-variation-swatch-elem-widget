@@ -18,6 +18,7 @@
             this.hiddenInput = null;
             this.currentSizes = [];
             this.selectedSize = '';
+            this.handleProductChangeTimeout = null;
 
             this.initHiddenInput();
             this.bindEvents();
@@ -47,20 +48,12 @@
             let attempts = 0;
             const maxAttempts = 20; // 10 seconds max
 
-            // If buttons were pre-rendered by PHP, bind them immediately
-            const existingBtns = this.swatchesContainer.querySelectorAll('.fpd-swatch');
-            if (existingBtns.length > 0) {
-                existingBtns.forEach(btn => {
-                    btn.addEventListener('click', () => this.selectSize(btn.getAttribute('data-value'), btn));
-                });
-            }
-
             const checkFPD = () => {
                 const fpdData = this.findFPDInstance();
 
                 if (fpdData && fpdData.instance) {
                     console.log('[FPD Size Swatches] FPD Instance found!', fpdData.element);
-                    this.bindFPDEvents(fpdData.element, fpdData.instance);
+                    this.bindFPDEvents(fpdData.instance);
                     // Trigger initial check if a product is already loaded
                     setTimeout(() => this.handleProductChange(fpdData.instance), 500);
                 } else if (attempts < maxAttempts) {
@@ -107,43 +100,92 @@
 
         /**
          * Bind FPD specific events.
-         * @param {HTMLElement} fpdElement 
          * @param {Object} fpdInstance
          */
-        bindFPDEvents(fpdElement, fpdInstance) {
-            // FPD triggers events on the container using jQuery
+        bindFPDEvents(fpdInstance) {
+            const self = this;
+            
+            const handleEvent = (e) => {
+                const type = e && e.type ? e.type : e;
+                console.log('[FPD Size Swatches] FPD Event triggered:', type);
+                self.handleProductChange(fpdInstance, type);
+            };
+
+            // 1. Bind directly to the FPD instance (Recommended by FPD docs)
+            if (fpdInstance && typeof fpdInstance.addEventListener === 'function') {
+                console.log('[FPD Size Swatches] Binding events directly to FPD instance...');
+                fpdInstance.addEventListener('ready', handleEvent);
+                fpdInstance.addEventListener('productAdd', handleEvent);
+                fpdInstance.addEventListener('productSelect', handleEvent);
+                fpdInstance.addEventListener('viewSelect', handleEvent);
+            }
+
+            // 2. Bind to document body via jQuery delegation (Catches DOM events even if container is recreated)
             if (window.jQuery) {
-                window.jQuery(fpdElement).on('productSelect productAdd ready viewSelect productCreate', () => {
-                    console.log('[FPD Size Swatches] FPD Event triggered. Checking active product...');
-                    this.handleProductChange(fpdInstance);
+                console.log('[FPD Size Swatches] Binding events to document body via jQuery...');
+                window.jQuery(document.body).on('productSelect productAdd ready viewSelect productCreate', '.fpd-container, .fancy-product-designer, #fpd, .fpd-main', function(e) {
+                    handleEvent(e);
                 });
-            } else {
-                fpdElement.addEventListener('productSelect', () => this.handleProductChange(fpdInstance));
-                fpdElement.addEventListener('productAdd', () => this.handleProductChange(fpdInstance));
-                fpdElement.addEventListener('ready', () => this.handleProductChange(fpdInstance));
-                fpdElement.addEventListener('productCreate', () => this.handleProductChange(fpdInstance));
             }
         }
 
         /**
-         * Handle FPD product change.
+         * Handle FPD product change (Debounced to wait for FPD state to settle).
          * @param {Object} fpdInstance
+         * @param {String} eventType
          */
-        handleProductChange(fpdInstance) {
-            if (!fpdInstance || typeof fpdInstance.getProducts !== 'function') return;
+        handleProductChange(fpdInstance, eventType) {
+            if (this.handleProductChangeTimeout) {
+                clearTimeout(this.handleProductChangeTimeout);
+            }
 
-            // FPD API: get current products
-            const products = fpdInstance.getProducts();
-            if (!products || products.length === 0) return;
+            this.handleProductChangeTimeout = setTimeout(() => {
+                if (!fpdInstance) return;
 
-            // Use the first product (standard for single-base setups)
-            const currentProduct = products[0]; 
-            const productId = currentProduct.id || currentProduct.product_id;
-            const productTitle = currentProduct.title;
+                let productId = null;
+                let productTitle = null;
 
-            console.log('[FPD Size Swatches] Active FPD Product:', { id: productId, title: productTitle });
+                // Try getProduct() first (returns current showing product)
+                if (typeof fpdInstance.getProduct === 'function') {
+                    try {
+                        const currentProd = fpdInstance.getProduct();
+                        if (currentProd && !Array.isArray(currentProd)) {
+                            productId = currentProd.id || currentProd.product_id;
+                            productTitle = currentProd.title;
+                        } else if (Array.isArray(currentProd) && currentProd.length > 0) {
+                            productId = currentProd[0].id || currentProd[0].product_id;
+                            productTitle = currentProd[0].title || currentProd[0].product_title;
+                        }
+                    } catch (e) {}
+                }
 
-            this.matchConfig(productId, productTitle);
+                // Try getProducts() fallback
+                if (!productId && typeof fpdInstance.getProducts === 'function') {
+                    try {
+                        const products = fpdInstance.getProducts();
+                        if (products && products.length > 0) {
+                            // The active product is usually the first one in single-base setups
+                            const currentProduct = products[0]; 
+                            productId = currentProduct.id || currentProduct.product_id;
+                            productTitle = currentProduct.title;
+                        }
+                    } catch (e) {}
+                }
+
+                // Try internal properties fallback
+                if (!productId && fpdInstance.currentViewInstance && fpdInstance.currentViewInstance.product) {
+                    productId = fpdInstance.currentViewInstance.product.id || fpdInstance.currentViewInstance.product.product_id;
+                    productTitle = fpdInstance.currentViewInstance.product.title;
+                }
+
+                console.log(`[FPD Size Swatches] Active FPD Product detected (Event: ${eventType}):`, { id: productId, title: productTitle });
+
+                if (productId || productTitle) {
+                    this.matchConfig(productId, productTitle);
+                } else {
+                    console.warn('[FPD Size Swatches] Could not determine active product ID or Title.');
+                }
+            }, 300); // 300ms delay ensures FPD has finished loading the new product before we check the ID
         }
 
         /**
