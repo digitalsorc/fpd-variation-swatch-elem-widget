@@ -113,13 +113,15 @@
         bindFPDEvents(fpdElement, fpdInstance) {
             // FPD triggers events on the container using jQuery
             if (window.jQuery) {
-                window.jQuery(fpdElement).on('productSelect productAdd ready viewSelect', () => {
+                window.jQuery(fpdElement).on('productSelect productAdd ready viewSelect productCreate', () => {
+                    console.log('[FPD Size Swatches] FPD Event triggered. Checking active product...');
                     this.handleProductChange(fpdInstance);
                 });
             } else {
                 fpdElement.addEventListener('productSelect', () => this.handleProductChange(fpdInstance));
                 fpdElement.addEventListener('productAdd', () => this.handleProductChange(fpdInstance));
                 fpdElement.addEventListener('ready', () => this.handleProductChange(fpdInstance));
+                fpdElement.addEventListener('productCreate', () => this.handleProductChange(fpdInstance));
             }
         }
 
@@ -152,9 +154,13 @@
         matchConfig(id, title) {
             let matchedConfig = null;
 
+            console.log('[FPD Size Swatches] Trying to match product ID:', id, 'Title:', title);
+            console.log('[FPD Size Swatches] Available configs:', this.config.products);
+
             for (const prodConfig of this.config.products) {
                 // Use loose string comparison to avoid type mismatch (e.g., 22 vs "22")
                 if (prodConfig.id && String(prodConfig.id) === String(id)) {
+                    console.log('[FPD Size Swatches] Matched by ID:', prodConfig.id);
                     matchedConfig = prodConfig;
                     break;
                 }
@@ -162,6 +168,7 @@
                     try {
                         const regex = new RegExp(prodConfig.pattern, 'i');
                         if (regex.test(title)) {
+                            console.log('[FPD Size Swatches] Matched by Title Regex:', prodConfig.pattern);
                             matchedConfig = prodConfig;
                             break;
                         }
@@ -171,18 +178,25 @@
                 }
             }
 
-            // SMART FALLBACK: If no exact match is found, but the user only defined ONE config, 
+            // SMART FALLBACK: If no exact match is found, but the user only defined ONE config in total, 
             // assume they want to use it globally for whatever loads.
             if (!matchedConfig && this.config.products.length === 1) {
                 console.log('[FPD Size Swatches] No exact ID/Title match, but only 1 config exists. Auto-selecting it.');
                 matchedConfig = this.config.products[0];
             }
 
-            if (matchedConfig && matchedConfig.show_sizes) {
-                this.renderSizes(matchedConfig.sizes);
-                this.container.style.display = 'block';
+            if (matchedConfig) {
+                if (matchedConfig.show_sizes) {
+                    console.log('[FPD Size Swatches] Showing sizes for matched config.');
+                    this.renderSizes(matchedConfig.sizes);
+                    this.container.style.display = 'block';
+                } else {
+                    console.log('[FPD Size Swatches] Matched config explicitly says "Show Sizes: No". Hiding widget.');
+                    this.container.style.display = 'none';
+                    this.clearSelection();
+                }
             } else {
-                console.log('[FPD Size Swatches] No sizes configured for this product. Hiding widget.');
+                console.log('[FPD Size Swatches] No matching config found for this product. Hiding widget.');
                 this.container.style.display = 'none';
                 this.clearSelection();
             }
