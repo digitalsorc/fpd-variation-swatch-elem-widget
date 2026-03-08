@@ -178,13 +178,6 @@
                 }
             }
 
-            // SMART FALLBACK: If no exact match is found, but the user only defined ONE config in total, 
-            // assume they want to use it globally for whatever loads.
-            if (!matchedConfig && this.config.products.length === 1) {
-                console.log('[FPD Size Swatches] No exact ID/Title match, but only 1 config exists. Auto-selecting it.');
-                matchedConfig = this.config.products[0];
-            }
-
             if (matchedConfig) {
                 if (matchedConfig.show_sizes) {
                     console.log('[FPD Size Swatches] Showing sizes for matched config.');
