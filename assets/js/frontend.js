@@ -19,7 +19,7 @@
             this.currentSizes = [];
             this.selectedSize = '';
             this.handleProductChangeTimeout = null;
-            this.isEditor = document.body.classList.contains('elementor-editor-active');
+            this.isEditor = document.body.classList.contains('elementor-editor-active') || window.location.href.includes('elementor-preview');
 
             this.initHiddenInput();
             this.bindEvents();
@@ -217,6 +217,14 @@
 
                 console.log(`[FPD Size Swatches] Active FPD Product detected (Event: ${eventType}):`, { id: productId, title: productTitle });
 
+                // If we are in the Elementor editor, ALWAYS match the first config so the user can see it
+                if (this.isEditor && (!productId && !productTitle) && this.config.products && this.config.products.length > 0) {
+                    console.log('[FPD Size Swatches] In Elementor Editor: Forcing display of first config for preview.');
+                    this.renderSizes(this.config.products[0].sizes || []);
+                    this.container.style.display = 'block';
+                    return;
+                }
+
                 if (productId || productTitle) {
                     this.matchConfig(productId, productTitle);
                 } else {
@@ -278,7 +286,7 @@
         hideWidget(editorMessage = 'Widget hidden') {
             if (this.isEditor) {
                 this.container.style.display = 'block';
-                this.swatchesContainer.innerHTML = `<p style="color: #888; font-style: italic; font-size: 12px;">${editorMessage}</p>`;
+                this.swatchesContainer.innerHTML = `<p style="color: #888; font-style: italic; font-size: 12px; padding: 10px; border: 1px dashed #ccc;">${editorMessage}</p>`;
             } else {
                 this.container.style.display = 'none';
             }
@@ -382,12 +390,20 @@
     } else {
         initFPDSizeSwatches();
     }
+    
+    // Also run on window load as a fallback
+    window.addEventListener('load', initFPDSizeSwatches);
 
-    // Also hook into Elementor for editor/dynamic loading
+    // Hook into Elementor for editor/dynamic loading
     if (typeof jQuery !== 'undefined') {
         jQuery(window).on('elementor/frontend/init', function() {
             if (window.elementorFrontend && window.elementorFrontend.hooks) {
                 window.elementorFrontend.hooks.addAction('frontend/element_ready/fpd_size_swatches.default', function($scope) {
+                    // Remove initialized class if it was already initialized so it can re-init in editor
+                    const widget = $scope[0].querySelector('.fpd-sizes-swatches');
+                    if (widget) {
+                        widget.classList.remove('fpd-initialized');
+                    }
                     initFPDSizeSwatches();
                 });
             }
