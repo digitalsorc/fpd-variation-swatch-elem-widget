@@ -1,0 +1,92 @@
+---
+title: "Options"
+source_url: "https://jsdoc.fancyproductdesigner.com/Options"
+crawl_date: "2026-03-06"
+---
+
+# Options
+
+**Kind:** global class
+
+## `Options.defaults` : `Object`
+The default options.
+**Kind:** static property of Options
+
+### Configuration Properties
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `stageWidth` | `Number` | `900` | The stage(canvas) width for the product designer. |
+| `stageHeight` | `Number` | `600` | The stage(canvas) height for the product designer. |
+| `editorMode` | `Boolean` | `false` | Enables the editor mode, which will add a helper box underneath the product designer with some options of the current selected element. |
+| `editorBoxParameters` | `Array` | `['left', 'top', 'angle', 'fill', 'width', 'height', 'fontSize', 'price']` | The properties that will be displayed in the editor box when an element is selected. |
+| `fonts` | `Array` | `[{name: 'Arial'}, {name: 'Lobster', url: 'google'}]` | An array containing all available fonts. |
+| `facebookAppId` | `String` | `''` | To add photos from Facebook, you have to set your own Facebook API key. |
+| `instagramClientId` | `String` | `''` | To add photos from Instagram, you have to set an Instagram client ID. |
+| `instagramRedirectUri` | `String` | `''` | This URI to the html/instagram_auth.html. |
+| `instagramTokenUri` | `String` | `''` | The URI to the script that get the access token from Instagram. |
+| `hexNames` | `Object` | `{}` | Set custom names for your hexdecimal colors. |
+| `selectedColor` | `String` | `'#d5d5d5'` | The border color of the selected element. |
+| `boundingBoxColor` | `String` | `'#005ede'` | The border color of the bounding box. |
+| `outOfBoundaryColor` | `String` | `'#990000'` | The border color of the element when its outside of his bounding box. |
+| `replaceInitialElements` | `Boolean` | `false` | If true only the initial elements will be replaced when changing the product. |
+| `fileServerURL` | `String` | | An object that contains the settings for the AJAX post when a custom added image is added to the canvas. |
+| `responsive` | `Boolean` | `true` | Make the canvas and the elements in the canvas responsive. |
+| `cornerIconColor` | `String` | `'#000000'` | Hex color value defining the color for the corner icon controls. |
+| `langJSON` | `Object \| Boolean` | `'lang/default.json'` | The URL to the JSON file or an object containing all content from the JSON file. |
+| `colorPickerPalette` | `Array` | `[]` | The color palette when the color wheel is displayed. |
+| `actions` | `Object` | `{left: ['info', 'download', 'print', 'preview-lightbox', 'reset-product'], center: ['undo', 'redo'], right: ['zoom', 'ruler', 'guided-tour']}` | An object defining the available actions in the different zones. |
+| `mainBarModules` | `Array` | `['products', 'images', 'text', 'designs']` | An array defining the available modules in the main bar. |
+| `initialActiveModule` | `String` | `''` | Set the initial active module. |
+| `maxValues` | `String` | `{}` | An object defining the maximum values for input elements in the toolbar. |
+| `watermark` | `Boolean \| String` | `false` | Set a watermark image when the user downloads/prints the product via the actions. |
+| `priceFormat` | `Object` | `{currency: '&#36;%d', decimalSep: '.', thousandSep: ','}` | An object containing the currency string, decimal separator and thousand separator. |
+| `mainBarContainer` | `Boolean \| String` | `false` | The ID of an element that will be used as container for the main bar. |
+| `modalMode` | `Boolean \| String` | `false` | The ID of an element that will be used to open the modal. |
+| `keyboardControl` | `Boolean` | `true` | Enable keyboard control. |
+| `deselectActiveOnOutside` | `Boolean` | `true` | Deselect active element when clicking outside of the product designer. |
+| `uploadZonesTopped` | `Boolean` | `true` | All upload zones will be always on top of all elements. |
+| `loadFirstProductInStage` | `Boolean` | `true` | Loads the first initial product into stage. |
+| `unsavedProductAlert` | `Boolean` | `false` | Alert window will pop up if the user leaves the page without saving. |
+| `hideDialogOnAdd` | `Boolean` | `true` | If the user adds something and off-canvas panel or dialog is opened, it will be closed. |
+| `toolbarPlacement` | `String` | `'smart'` | Set the placement of the toolbar. |
+| `fabricCanvasOptions` | `Object` | `{}` | An object containing options for the fabricjs canvas. |
+| `namesNumbersDropdown` | `Array` | `[]` | Defines the values for the select element in the names & numbers module. |
+| `namesNumbersEntryPrice` | `Number` | `0` | Sets price for any extra entry in the names & numbers module. |
+| `colorSelectionPlacement` | `String` | `''` | Sets the placement for the color selection. |
+| `bulkVariationsPlacement` | `String` | `''` | Sets the placement for the Bulk-Add Variations Form. |
+| `bulkVariations` | `Object` | `{}` | The available variations for the Bulk-Add Variations Form. |
+| `toolbarDynamicContext` | `String` | `'body'` | The element where the toolbar will be appended when toolbarPlacement='smart'. |
+| `boundingBoxProps` | `Object` | `{strokeWidth: 1}` | Addtional properties for the bounding box. |
+| `fitImagesInCanvas` | `Boolean` | `false` | If the image is larger than the canvas, it will be scaled down. |
+| `maxPrice` | `Number` | `-1` | Set a maximum price for all products or for specific views. |
+| `inCanvasTextEditing` | `Boolean` | `true` | The text can be edited in the canvas by double click/tap. |
+| `openTextInputOnSelect` | `Boolean` | `false` | The text input in the toolbar when be opened when an editable text is selected. |
+| `designCategories` | `Array` | `[]` | An array of design category titles to enable particular design categories. |
+| `optionalView` | `Boolean` | `false` | Will make the view(s) optional, so the user have to unlock it. |
+| `saveActionBrowserStorage` | `Boolean` | `true` | Store the product in user's browser storage when using save/load actions. |
+| `pricingRules` | `Array` | `[]` | An array containing the pricing rules groups. |
+| `uploadAgreementModal` | `Boolean` | `false` | Enables an agreement modal that needs to be confirmed before uploaded images can be used. |
+| `imageEditorSettings` | `Object` | `{masks: []}` | An object containing the settings for the image editor. |
+| `printingBox` | `Object` | `null` | An object containing left, top, width and height properties that represents a printing box. |
+| `autoOpenInfo` | `Boolean` | `false` | Open the Info modal when product designer is loaded. |
+| `guidedTour` | `Null \| Object` | `null` | Create a custom guided tour. |
+| `replaceColorsInColorGroup` | `Boolean` | `false` | As soon as an element with a color link group is added, the colours of this element will be used for the color group. |
+| `allowedImageTypes` | `Array` | `['jpeg', 'png', 'svg', 'pdf']` | Defines the image types in lowercase that can be uploaded. |
+| `pixabayApiKey` | `String` | `''` | To add photos from Pixabay, you have to set an Pixabay API key. |
+| `sizeTooltip` | `Boolean` | `false` | Shows the current image size in a tooltip above the image element when its selected. |
+
+*(Note: Additional properties for specific elements like `elementParameters`, `textParameters`, `imageParameters`, `customImageParameters`, `dynamicViewsOptions`, and `aiService` are also available in `Options.defaults`).*
+
+## Methods
+
+### `Options.merge(defaults, [merge])` ⇒ `Object`
+Merges the default options with custom options.
+- **Returns:** `Object` - The new options object.
+- **Parameters:**
+  - `defaults` (`Object`): The default object.
+  - `[merge]` (`Object`): The merged object, that will be merged into the defaults.
+
+### `Options.getParameterKeys()` ⇒ `Array`
+Returns all element parameter keys.
+- **Returns:** `Array` - An array containing all element parameter keys.

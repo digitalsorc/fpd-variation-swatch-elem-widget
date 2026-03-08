@@ -1,0 +1,61 @@
+---
+title: "fabric.Object"
+source_url: "https://jsdoc.fancyproductdesigner.com/fabric.Object"
+crawl_date: "2026-03-06"
+---
+
+# Element (fabric.Object)
+
+**Kind:** API Reference Extension
+
+## Methods
+
+### `getType([fabricType])` ⇒ `String`
+Gets the type of an element.
+- **Returns:** `String` - The element type - text or image.
+
+### `isSVG()` ⇒ `Boolean`
+Checks if the element is a SVG.
+
+### `isColorizable()` ⇒ `Boolean`
+Checks if the element is colorizable.
+
+### `isBitmap()` ⇒ `Boolean`
+Checks if the element is a bitmap image.
+
+### `hasColorSelection()` ⇒ `Boolean`
+Checks if the element has a color selection.
+
+### `checkEditable(checkProps)` ⇒ `Boolean`
+Checks if the element can be edited by the user.
+
+### `changeColor(colorData, [colorLinking])` ⇐ `fabric.Canvas`
+Changes the color of an element.
+- **Parameters:**
+  - `colorData` (`String \| Array`): Hex color value or any array of hex color values.
+  - `[colorLinking]` (`Boolean`): If element is color linked, execute it.
+
+### `setPattern(patternUrl)` ⇐ `fabric.Canvas`
+Sets the pattern for an element.
+
+### `getZIndex()` ⇒ `Number`
+Gets the z-index of an element.
+
+### `centerElement([hCenter], [vCenter])` ⇐ `fabric.Object`
+Centers an element horizontal or/and vertical.
+
+### `getBoundingBoxCoords(element)` ⇒ `Object \| Boolean`
+Returns the bounding box of an element.
+
+### `getClippingObject()` ⇒ `Object \| fabric.Object`
+Gets the object for the clipping. Could be an object with coordinates or a fabric.Object.
+
+### `getElementJSON([addPropertiesToInclude], [propertyKeys])` ⇒ `Object`
+Gets the JSON representation of the element.
+- **Returns:** `Object` - A JSON representation of the element.
+
+### `alignToPosition([pos])` ⇐ `fabric.Canvas`
+Aligns an element. Allowed values: left, right, top or bottom.
+
+### `toggleUploadZone()` ⇐ `fabric.Canvas`
+Toggles the visibility of an upload zone. The upload zone is visible if it contains an element and hidden when empty.

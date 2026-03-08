@@ -1,0 +1,78 @@
+---
+title: "fabric.Canvas"
+source_url: "https://jsdoc.fancyproductdesigner.com/fabric.Canvas"
+crawl_date: "2026-03-06"
+---
+
+# fabric.Canvas
+
+**Kind:** API Reference Extension
+
+## Methods
+
+### `addElement(elements, [callback])` ⇐ `fabric.Canvas`
+Adds a set of elements into the view.
+- **Parameters:**
+  - `elements` (`Array`): An array containing elements.
+  - `[callback]` (`function`): A function that will be called when all elements have beed added.
+
+### `addElement(type, source, title, [parameters])` ⇐ `fabric.Canvas`
+Adds a new element to the view.
+- **Parameters:**
+  - `type` (`string`): The type of an element you would like to add, 'image' or 'text'.
+  - `source` (`string`): For image the URL to the image and for text elements the default text.
+  - `title` (`string`): Only required for image elements.
+  - `[parameters]` (`object`): An object with the parameters, you would like to apply on the element.
+
+### `resetSize(discardActiveObject)` ⇐ `fabric.Canvas`
+Deselects the current selected element.
+
+### `resetSize()` ⇐ `fabric.Canvas`
+Resets the canvas size considering the available space on the device.
+
+### `setResZoom(value)` ⇐ `fabric.Canvas`
+Sets the zoom of the stage. 1 is equal to no zoom.
+
+### `resetZoom()` ⇐ `fabric.Canvas`
+Resets the the zoom.
+
+### `getElements()` ⇒ `Array`
+Returns an array with fabricjs objects.
+
+### `getElementsJSON(title)` ⇒ `Object`
+Returns an fabric object by title.
+
+### `getElementByTitle(title)` ⇒ `Object`
+Returns an fabric object by title.
+
+### `getElementByID(id)` ⇒ `Object`
+Returns an fabric object by ID.
+
+### `reset()` ⇐ `fabric.Canvas`
+Removes the canvas and resets all relevant view properties.
+
+### `removeElement(element)` ⇐ `fabric.Canvas`
+Removes an element using the fabric object or the title of an element.
+- **Parameters:**
+  - `element` (`object \| string`): Needs to be a fabric object or the title of an element.
+
+### `getElementByReplace()` ⇐ `fabric.Canvas`
+Gets an elment by replace property.
+
+### `setElementOptions(parameters, [element])` ⇐ `fabric.Canvas`
+Sets the parameters for a specified element.
+- **Parameters:**
+  - `parameters` (`object`): An object with the parameters that should be applied to the element.
+  - `[element]` (`fabric.Object \| string`): A fabric object or the title of an element.
+
+### `duplicateElement(element)` ⇐ `fabric.Canvas`
+Duplicates an element in the canvas.
+
+### `getUploadZone(title)` ⇒ `fabric.Object`
+Gets an upload zone by title.
+
+### `setMask(maskOptions, [callback])` ⇐ `fabric.Canvas`
+Use a SVG image as mask for the whole view. The image needs to be a SVG file with only one path. The method toSVG() does not include the mask.
+- **Parameters:**
+  - `maskOptions` (`Object \| Null`): An object containing the URL to the svg. Optional: scaleX, scaleY, left and top.
+  - `[callback]` (`function`): A function when mask is loaded and set. Returns the mask or null.

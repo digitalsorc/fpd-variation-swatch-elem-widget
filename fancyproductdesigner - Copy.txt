@@ -1,0 +1,99 @@
+---
+title: "FancyProductDesigner"
+source_url: "https://jsdoc.fancyproductdesigner.com/FancyProductDesigner"
+crawl_date: "2026-03-06"
+---
+
+# FancyProductDesigner
+
+**Kind:** global class
+**Extends:** EventTarget
+
+## Constructor
+
+### `new FancyProductDesigner(elem, [opts])`
+Creates a new FancyProductDesigner.
+- **Parameters:**
+  - `elem` (`HTMLElement`): The container for the Fancy Product Designer.
+  - `[opts]` (`Object`): Options for configuration. Default `{}`.
+
+## Static Properties
+
+### `FancyProductDesigner.additionalModules` : `Object`
+You can register your own modules and add them in this static property.
+- **Default:** `{}`
+- **Example:** `{'my-module': ModuleClass}`
+
+## Inner Properties
+- `~container` (`HTMLElement`): The container for the Fancy Product Designer.
+- `~mainOptions` (`Object`): The main options set for this Product Designer.
+- `~currentViewInstance` (`FancyProductDesignerView`): The current selected view instance.
+- `~currentViewIndex` (`Number`): The current selected view index.
+- `~products` (`Array`): Array containing all products.
+- `~designs` (`Array`): Array containing all designs.
+- `~currentElement` (`fabric.Object`): The current selected element.
+- `~currentPrice` (`Number`): The price considering the elements price in all views with order quantity.
+
+## Methods
+
+### `setupDesigns(designs)`
+Set up the designs with a JSON.
+- **Parameters:**
+  - `designs` (`Array`): An array containg the categories with designs.
+
+### `addProduct(views, [category])`
+Adds a new product to the product designer.
+- **Parameters:**
+  - `views` (`array`): An array containing the views for a product.
+  - `[category]` (`string`): If categories are used, you need to define the category title.
+
+### `loadProduct(views, [onlyReplaceInitialElements], [mergeMainOptions])`
+Loads a new product to the product designer.
+
+### `addView(view)`
+Adds a view to the current visible product.
+
+### `getIndex()` ⇒ `Number`
+Gets the index of the view.
+
+### `selectView(index)`
+Selects a view from the current visible views.
+
+### `getElements([viewIndex], [elementType], [deselectElement])` ⇒ `Array`
+Returns an array with fabricjs objects.
+
+### `getCustomElements([type], [viewIndex], [deselectElement])` ⇒ `array`
+Returns an array with all custom added elements.
+
+### `reset()`
+Clears the product stage and resets everything.
+
+### `deselectElement()`
+Deselects the selected element of the current showing view.
+
+### `addCustomImage(source, title, options, [viewIndex])`
+Adds a new custom image to the product stage.
+
+### `getProduct([onlyEditableElements], [customizationRequired])` ⇒ `array`
+Returns the current showing product with all views and elements in the views.
+
+### `getProductDataURL(callback, [options], [viewRange])`
+Creates all views in one data URL.
+
+### `print()`
+Opens the current showing product in a Pop-up window and shows the print dialog.
+
+### `getOrder([options])` ⇒ `object`
+Returns an order object containing the product, usedFonts, and usedColors.
+
+### `calculatePrice([considerQuantity])` ⇒ `Number`
+Calculates the total price considering the elements price in all views and pricing rules.
+
+## Events
+- `"ready"`: Gets fired as soon as product designer is ready.
+- `"productAdd"`: Gets fired when a product is added.
+- `"productSelect"`: Gets fired when a product is selected.
+- `"elementAdd"`: Gets fired when an element is added.
+- `"elementModify"`: Gets fired when an element is modified.
+- `"priceChange"`: Gets fired as soon as the price changes in a view.
+- `"viewSelect"`: Gets fired as soon as a view has been selected.

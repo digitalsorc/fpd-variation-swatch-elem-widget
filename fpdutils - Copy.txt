@@ -1,0 +1,47 @@
+---
+title: "FPDUtils"
+source_url: "https://jsdoc.fancyproductdesigner.com/FPDUtils"
+crawl_date: "2026-03-06"
+---
+
+# FPDUtils
+
+**Kind:** global class
+
+A class with some static helper functions. You do not need to initiate the class, just call the methods directly, e.g. `FPDUtil.showModal();`
+
+## Static Methods
+
+### `FPDUtils.arrayUnique(array)` ⇒ `Array`
+Makes an unique array.
+- **Returns:** `Array` - Returns the edited array.
+- **Parameters:**
+  - `array` (`Array`): The target array.
+
+### `FPDUtils.showModal(htmlContent, [fullscreen], [type], [container])`
+Displays a modal dialog.
+- **Parameters:**
+  - `htmlContent` (`String`): The html content for the modal.
+  - `[fullscreen]` (`Boolean`): Displays the modal in full screen. Default: `false`.
+  - `[type]` (`String`): Empty, 'prompt' or 'confirm'.
+  - `[container]` (`HTMLElement`): The container for the modal. Default: `document.body`.
+
+### `FPDUtils.showMessage(text, [autoRemove])`
+Displays a message in a snackbar (bottom-left).
+- **Parameters:**
+  - `text` (`String`): The text for the message.
+  - `[autoRemove]` (`Boolean`): Either to remove the message automatically or not. Default: `true`.
+
+### `FPDUtils.isUrl(s)` ⇒ `Boolean`
+Checks if a string is an URL.
+- **Returns:** `Boolean` - Returns true if string is an URL.
+- **Parameters:**
+  - `s` (`String`): The string.
+
+### `FPDUtils.pixelToUnit(pixel, [unit], [dpi])` ⇒ `Boolean`
+Converts a pixel value to any metric value considering the DPI.
+- **Returns:** `Boolean` - Returns true if string is an URL.
+- **Parameters:**
+  - `pixel` (`Number`): The pixel value.
+  - `[unit]` (`String`): Target metric - 'inch', 'mm', 'cm'. Default: `'inch'`.
+  - `[dpi]` (`Number`): Target DPI. Default: `72`.

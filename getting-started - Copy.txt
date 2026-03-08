@@ -1,0 +1,53 @@
+---
+title: "Getting Started"
+source_url: "https://jsdoc.fancyproductdesigner.com/"
+crawl_date: "2026-03-06"
+---
+
+# Getting Started
+
+First of all add the necessary JS and CSS files to your web page.
+
+```html
+<link rel="stylesheet" type="text/css" href="css/FancyProductDesigner.min.css" />
+<script src="js/fabric-5.3.1.min.js" type="text/javascript"></script>
+<script src="js/FancyProductDesigner.min.js" type="text/javascript"></script>
+```
+
+Create a container element for the product designer anywhere in your page.
+
+```html
+<div id="fpd-target" class="fpd-sidebar fpd-shadow-2"></div>
+```
+
+In the class attribute you can also define the initial layout (See demos folder).
+
+Now initialize an instance of FancyProductDesigner on that container element.
+
+```javascript
+const appOptions = {};
+const fpd = new FancyProductDesigner(
+  document.getElementById('fpd-target'),
+  appOptions
+);
+```
+
+You can find all app options here.
+
+## API
+
+### Methods
+
+```javascript
+fpd.getOrder(); //https://jsdoc.fancyproductdesigner.com/FancyProductDesigner#getOrder
+//access current view instance
+fpd.currentViewInstance.toDataURL() // export the current selected view as data URI
+```
+
+### Events
+
+```javascript
+fpd.addEventListener('ready', () => {
+  //wait for this event in order to make any api method call
+})
+```

@@ -1,0 +1,57 @@
+---
+title: "FancyProductDesignerView"
+source_url: "https://jsdoc.fancyproductdesigner.com/FancyProductDesignerView"
+crawl_date: "2026-03-06"
+---
+
+# FancyProductDesignerView
+
+**Kind:** global class
+**Extends:** EventTarget
+
+## Constructor
+
+### `new FancyProductDesignerView(container, [viewData], [callback], [fabricCanvasOptions])`
+Creates a new FancyProductDesignerView.
+- **Parameters:**
+  - `container` (`HTMLElement`): The container for the Fancy Product Designer View.
+  - `[viewData]` (`Object`): The initial view data.
+  - `[callback]` (`function`): Callback when view is created.
+  - `[fabricCanvasOptions]` (`Object`): Options for fabricJS canvas.
+
+## Inner Properties
+- `~totalPrice` (`Number`): The total price for the view without max. price.
+- `~truePrice` (`Number`): The total price for the view including max. price and correct formatting.
+- `~additionalPrice` (`Number`): Additional price for the view.
+- `~mask` (`Object`): The properties for the mask object.
+
+## Methods
+
+### `init()`
+This method needs to be called to initialize the generation.
+
+### `loadElements(elements, callback)`
+Removes the current elements and loads a set of new elements into the view.
+- **Parameters:**
+  - `elements` (`Array`): An array containing elements.
+  - `callback` (`function`): A function that will be called when all elements have been added.
+
+### `toDataURL(callback, [options], [deselectElement])`
+Creates a data URL of the view.
+- **Parameters:**
+  - `callback` (`function`): A function that will be called when the data URL is created.
+  - `[options]` (`Object`): Options object for data URL generation (`onlyExportable`, `backgroundColor`, etc.).
+  - `[deselectElement]` (`Boolean`): Deselect current selected element.
+
+### `toSVG([options], [fontsToEmbed])` ⇒ `String`
+Returns the view as SVG.
+- **Returns:** `String` - A XML representing a SVG.
+
+### `toggleLock(toggle)` ⇒ `Boolean`
+Toggles the lockment of view. If the view is locked, the price of the view will not be added to the total product price.
+
+### `changePrice(price, operator)` ⇒ `Number`
+Changes the price by an operator, + or -.
+
+## Events
+- `"priceChange"`: Gets fired as soon as the price has changed.

@@ -46,21 +46,30 @@
          */
         waitForFPD() {
             let attempts = 0;
-            const maxAttempts = 20; // 10 seconds max
+            const maxAttempts = 40; // 20 seconds max
 
             const checkFPD = () => {
-                const fpdData = this.findFPDInstance();
+                // Check if FPD instance is available globally (standard for FPD)
+                if (window.fancyProductDesigner && typeof window.fancyProductDesigner.getProducts === 'function') {
+                    console.log('[FPD Size Swatches] Global FPD Instance found!');
+                    this.bindFPDEvents(window.fancyProductDesigner);
+                    // Trigger initial check
+                    setTimeout(() => this.handleProductChange(window.fancyProductDesigner, 'init'), 500);
+                    return;
+                }
 
+                // Fallback: Check via jQuery data on common selectors
+                const fpdData = this.findFPDInstance();
                 if (fpdData && fpdData.instance) {
-                    console.log('[FPD Size Swatches] FPD Instance found!', fpdData.element);
+                    console.log('[FPD Size Swatches] FPD Instance found via jQuery!', fpdData.element);
                     this.bindFPDEvents(fpdData.instance);
-                    // Trigger initial check if a product is already loaded
-                    setTimeout(() => this.handleProductChange(fpdData.instance), 500);
+                    // Trigger initial check
+                    setTimeout(() => this.handleProductChange(fpdData.instance, 'init'), 500);
                 } else if (attempts < maxAttempts) {
                     attempts++;
                     setTimeout(checkFPD, 500);
                 } else {
-                    console.warn('[FPD Size Swatches] Could not find FPD instance after 10 seconds.');
+                    console.warn('[FPD Size Swatches] Could not find FPD instance after 20 seconds.');
                 }
             };
             checkFPD();
@@ -70,31 +79,16 @@
          * Smartly find the FPD instance in the DOM.
          */
         findFPDInstance() {
-            // 1. Try the user-defined selector first, then common fallbacks
             const selectors = [this.config.selector, '.fpd-container', '.fancy-product-designer', '#fpd', '.fpd-main'];
             
             for (let sel of selectors) {
                 if (!sel) continue;
                 const el = document.querySelector(sel);
-                if (el) {
-                    let instance = window.fancyProductDesigner || (window.jQuery && window.jQuery(el).data('fancyProductDesigner'));
+                if (el && window.jQuery) {
+                    let instance = window.jQuery(el).data('fancyProductDesigner');
                     if (instance) return { element: el, instance: instance };
                 }
             }
-
-            // 2. Desperate fallback: scan all divs for jQuery data
-            if (window.jQuery) {
-                let found = null;
-                window.jQuery('div').each(function() {
-                    let inst = window.jQuery(this).data('fancyProductDesigner');
-                    if (inst) {
-                        found = { element: this, instance: inst };
-                        return false; // break loop
-                    }
-                });
-                if (found) return found;
-            }
-
             return null;
         }
 
@@ -106,24 +100,26 @@
             const self = this;
             
             const handleEvent = (e) => {
-                const type = e && e.type ? e.type : e;
+                const type = e && e.type ? e.type : (typeof e === 'string' ? e : 'unknown');
                 console.log('[FPD Size Swatches] FPD Event triggered:', type);
                 self.handleProductChange(fpdInstance, type);
             };
 
-            // 1. Bind directly to the FPD instance (Recommended by FPD docs)
+            // 1. Bind directly to the FPD instance (Official API)
             if (fpdInstance && typeof fpdInstance.addEventListener === 'function') {
                 console.log('[FPD Size Swatches] Binding events directly to FPD instance...');
-                fpdInstance.addEventListener('ready', handleEvent);
-                fpdInstance.addEventListener('productAdd', handleEvent);
-                fpdInstance.addEventListener('productSelect', handleEvent);
-                fpdInstance.addEventListener('viewSelect', handleEvent);
+                // 'ready' fires when FPD is fully loaded
+                fpdInstance.addEventListener('ready', () => handleEvent('ready'));
+                // 'productSelect' fires when a user selects a different product from the module
+                fpdInstance.addEventListener('productSelect', () => handleEvent('productSelect'));
+                // 'productAdd' fires when a new product is added to the stage
+                fpdInstance.addEventListener('productAdd', () => handleEvent('productAdd'));
             }
 
             // 2. Bind to document body via jQuery delegation (Catches DOM events even if container is recreated)
             if (window.jQuery) {
                 console.log('[FPD Size Swatches] Binding events to document body via jQuery...');
-                window.jQuery(document.body).on('productSelect productAdd ready viewSelect productCreate', '.fpd-container, .fancy-product-designer, #fpd, .fpd-main', function(e) {
+                window.jQuery(document.body).on('productSelect productAdd ready', '.fpd-container, .fancy-product-designer, #fpd, .fpd-main', function(e) {
                     handleEvent(e);
                 });
             }
@@ -145,21 +141,28 @@
                 let productId = null;
                 let productTitle = null;
 
-                // Try getProduct() first (returns current showing product)
+                // Official API: getProduct() returns the current showing product with all views
                 if (typeof fpdInstance.getProduct === 'function') {
                     try {
                         const currentProd = fpdInstance.getProduct();
-                        if (currentProd && !Array.isArray(currentProd)) {
-                            productId = currentProd.id || currentProd.product_id;
-                            productTitle = currentProd.title;
-                        } else if (Array.isArray(currentProd) && currentProd.length > 0) {
-                            productId = currentProd[0].id || currentProd[0].product_id;
-                            productTitle = currentProd[0].title || currentProd[0].product_title;
+                        // FPD getProduct() usually returns an array of views, but the product info might be attached to it
+                        if (currentProd) {
+                            // Sometimes it's an array, sometimes an object depending on FPD version
+                            const prodData = Array.isArray(currentProd) && currentProd.length > 0 ? currentProd[0] : currentProd;
+                            
+                            // Try to extract ID and Title from the product data
+                            if (prodData) {
+                                productId = prodData.id || prodData.product_id || prodData.productId;
+                                productTitle = prodData.title || prodData.productTitle;
+                            }
                         }
-                    } catch (e) {}
+                    } catch (e) {
+                        console.error('[FPD Size Swatches] Error calling getProduct()', e);
+                    }
                 }
 
-                // Try getProducts() fallback
+                // Official API Fallback: getProducts() returns an array with all products
+                // If we couldn't get the ID from getProduct(), try getProducts()
                 if (!productId && typeof fpdInstance.getProducts === 'function') {
                     try {
                         const products = fpdInstance.getProducts();
@@ -169,13 +172,9 @@
                             productId = currentProduct.id || currentProduct.product_id;
                             productTitle = currentProduct.title;
                         }
-                    } catch (e) {}
-                }
-
-                // Try internal properties fallback
-                if (!productId && fpdInstance.currentViewInstance && fpdInstance.currentViewInstance.product) {
-                    productId = fpdInstance.currentViewInstance.product.id || fpdInstance.currentViewInstance.product.product_id;
-                    productTitle = fpdInstance.currentViewInstance.product.title;
+                    } catch (e) {
+                        console.error('[FPD Size Swatches] Error calling getProducts()', e);
+                    }
                 }
 
                 console.log(`[FPD Size Swatches] Active FPD Product detected (Event: ${eventType}):`, { id: productId, title: productTitle });
@@ -183,9 +182,11 @@
                 if (productId || productTitle) {
                     this.matchConfig(productId, productTitle);
                 } else {
-                    console.warn('[FPD Size Swatches] Could not determine active product ID or Title.');
+                    console.warn('[FPD Size Swatches] Could not determine active product ID or Title. Hiding widget.');
+                    this.container.style.display = 'none';
+                    this.clearSelection();
                 }
-            }, 300); // 300ms delay ensures FPD has finished loading the new product before we check the ID
+            }, 500); // 500ms delay ensures FPD has finished loading the new product before we check the ID
         }
 
         /**

@@ -1,0 +1,474 @@
+---
+title: "Unified Fancy Product Designer Documentation"
+source: "Merged from local markdown files"
+merged_date: "2026-03-06"
+---
+
+# Unified Fancy Product Designer Documentation
+
+This document combines the individual reference pages into a single file for easier consumption.
+
+---
+
+## Getting Started
+
+First of all add the necessary JS and CSS files to your web page.
+
+```html
+<link rel="stylesheet" type="text/css" href="css/FancyProductDesigner.min.css" />
+<script src="js/fabric-5.3.1.min.js" type="text/javascript"></script>
+<script src="js/FancyProductDesigner.min.js" type="text/javascript"></script>
+```
+
+Create a container element for the product designer anywhere in your page.
+
+```html
+<div id="fpd-target" class="fpd-sidebar fpd-shadow-2"></div>
+```
+
+In the class attribute you can also define the initial layout (See demos folder).
+
+Now initialize an instance of FancyProductDesigner on that container element.
+
+```javascript
+const appOptions = {};
+const fpd = new FancyProductDesigner(
+  document.getElementById('fpd-target'),
+  appOptions
+);
+```
+
+You can find all app options here.
+
+### API
+
+#### Methods
+
+```javascript
+fpd.getOrder(); //https://jsdoc.fancyproductdesigner.com/FancyProductDesigner#getOrder
+//access current view instance
+fpd.currentViewInstance.toDataURL() // export the current selected view as data URI
+```
+
+#### Events
+
+```javascript
+fpd.addEventListener('ready', () => {
+  //wait for this event in order to make any api method call
+})
+```
+
+---
+
+## Options
+
+**Kind:** global class
+
+### Options.defaults : Object
+The default options.
+
+#### Configuration Properties
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `stageWidth` | `Number` | `900` | The stage(canvas) width for the product designer. |
+| `stageHeight` | `Number` | `600` | The stage(canvas) height for the product designer. |
+| `editorMode` | `Boolean` | `false` | Enables the editor mode, which will add a helper box underneath the product designer with some options of the current selected element. |
+| `editorBoxParameters` | `Array` | `['left', 'top', 'angle', 'fill', 'width', 'height', 'fontSize', 'price']` | The properties that will be displayed in the editor box when an element is selected. |
+| `fonts` | `Array` | `[{name: 'Arial'}, {name: 'Lobster', url: 'google'}]` | An array containing all available fonts. |
+| `facebookAppId` | `String` | `''` | To add photos from Facebook, you have to set your own Facebook API key. |
+| `instagramClientId` | `String` | `''` | To add photos from Instagram, you have to set an Instagram client ID. |
+| `instagramRedirectUri` | `String` | `''` | This URI to the html/instagram_auth.html. |
+| `instagramTokenUri` | `String` | `''` | The URI to the script that get the access token from Instagram. |
+| `hexNames` | `Object` | `{}` | Set custom names for your hexdecimal colors. |
+| `selectedColor` | `String` | `'#d5d5d5'` | The border color of the selected element. |
+| `boundingBoxColor` | `String` | `'#005ede'` | The border color of the bounding box. |
+| `outOfBoundaryColor` | `String` | `'#990000'` | The border color of the element when its outside of his bounding box. |
+| `replaceInitialElements` | `Boolean` | `false` | If true only the initial elements will be replaced when changing the product. |
+| `fileServerURL` | `String` | | An object that contains the settings for the AJAX post when a custom added image is added to the canvas. |
+| `responsive` | `Boolean` | `true` | Make the canvas and the elements in the canvas responsive. |
+| `cornerIconColor` | `String` | `'#000000'` | Hex color value defining the color for the corner icon controls. |
+| `langJSON` | `Object \| Boolean` | `'lang/default.json'` | The URL to the JSON file or an object containing all content from the JSON file. |
+| `colorPickerPalette` | `Array` | `[]` | The color palette when the color wheel is displayed. |
+| `actions` | `Object` | `{left: ['info', 'download', 'print', 'preview-lightbox', 'reset-product'], center: ['undo', 'redo'], right: ['zoom', 'ruler', 'guided-tour']}` | An object defining the available actions in the different zones. |
+| `mainBarModules` | `Array` | `['products', 'images', 'text', 'designs']` | An array defining the available modules in the main bar. |
+| `initialActiveModule` | `String` | `''` | Set the initial active module. |
+| `maxValues` | `String` | `{}` | An object defining the maximum values for input elements in the toolbar. |
+| `watermark` | `Boolean \| String` | `false` | Set a watermark image when the user downloads/prints the product via the actions. |
+| `priceFormat` | `Object` | `{currency: '&#36;%d', decimalSep: '.', thousandSep: ','}` | An object containing the currency string, decimal separator and thousand separator. |
+| `mainBarContainer` | `Boolean \| String` | `false` | The ID of an element that will be used as container for the main bar. |
+| `modalMode` | `Boolean \| String` | `false` | The ID of an element that will be used to open the modal. |
+| `keyboardControl` | `Boolean` | `true` | Enable keyboard control. |
+| `deselectActiveOnOutside` | `Boolean` | `true` | Deselect active element when clicking outside of the product designer. |
+| `uploadZonesTopped` | `Boolean` | `true` | All upload zones will be always on top of all elements. |
+| `loadFirstProductInStage` | `Boolean` | `true` | Loads the first initial product into stage. |
+| `unsavedProductAlert` | `Boolean` | `false` | Alert window will pop up if the user leaves the page without saving. |
+| `hideDialogOnAdd` | `Boolean` | `true` | If the user adds something and off-canvas panel or dialog is opened, it will be closed. |
+| `toolbarPlacement` | `String` | `'smart'` | Set the placement of the toolbar. |
+| `fabricCanvasOptions` | `Object` | `{}` | An object containing options for the fabricjs canvas. |
+| `namesNumbersDropdown` | `Array` | `[]` | Defines the values for the select element in the names & numbers module. |
+| `namesNumbersEntryPrice` | `Number` | `0` | Sets price for any extra entry in the names & numbers module. |
+| `colorSelectionPlacement` | `String` | `''` | Sets the placement for the color selection. |
+| `bulkVariationsPlacement` | `String` | `''` | Sets the placement for the Bulk-Add Variations Form. |
+| `bulkVariations` | `Object` | `{}` | The available variations for the Bulk-Add Variations Form. |
+| `toolbarDynamicContext` | `String` | `'body'` | The element where the toolbar will be appended when toolbarPlacement='smart'. |
+| `boundingBoxProps` | `Object` | `{strokeWidth: 1}` | Addtional properties for the bounding box. |
+| `fitImagesInCanvas` | `Boolean` | `false` | If the image is larger than the canvas, it will be scaled down. |
+| `maxPrice` | `Number` | `-1` | Set a maximum price for all products or for specific views. |
+| `inCanvasTextEditing` | `Boolean` | `true` | The text can be edited in the canvas by double click/tap. |
+| `openTextInputOnSelect` | `Boolean` | `false` | The text input in the toolbar when be opened when an editable text is selected. |
+| `designCategories` | `Array` | `[]` | An array of design category titles to enable particular design categories. |
+| `optionalView` | `Boolean` | `false` | Will make the view(s) optional, so the user have to unlock it. |
+| `saveActionBrowserStorage` | `Boolean` | `true` | Store the product in user's browser storage when using save/load actions. |
+| `pricingRules` | `Array` | `[]` | An array containing the pricing rules groups. |
+| `uploadAgreementModal` | `Boolean` | `false` | Enables an agreement modal that needs to be confirmed before uploaded images can be used. |
+| `imageEditorSettings` | `Object` | `{masks: []}` | An object containing the settings for the image editor. |
+| `printingBox` | `Object` | `null` | An object containing left, top, width and height properties that represents a printing box. |
+| `autoOpenInfo` | `Boolean` | `false` | Open the Info modal when product designer is loaded. |
+| `guidedTour` | `Null \| Object` | `null` | Create a custom guided tour. |
+| `replaceColorsInColorGroup` | `Boolean` | `false` | As soon as an element with a color link group is added, the colours of this element will be used for the color group. |
+| `allowedImageTypes` | `Array` | `['jpeg', 'png', 'svg', 'pdf']` | Defines the image types in lowercase that can be uploaded. |
+| `pixabayApiKey` | `String` | `''` | To add photos from Pixabay, you have to set an Pixabay API key. |
+| `sizeTooltip` | `Boolean` | `false` | Shows the current image size in a tooltip above the image element when its selected. |
+
+*(Note: Additional properties for specific elements like `elementParameters`, `textParameters`, `imageParameters`, `customImageParameters`, `dynamicViewsOptions`, and `aiService` are also available in `Options.defaults`).*
+
+### Methods
+
+#### Options.merge(defaults, [merge]) ⇒ Object
+Merges the default options with custom options.
+- Returns: Object - The new options object.
+- Parameters:
+  - `defaults` (Object): The default object.
+  - `[merge]` (Object): The merged object, that will be merged into the defaults.
+
+#### Options.getParameterKeys() ⇒ Array
+Returns all element parameter keys.
+- Returns: Array - An array containing all element parameter keys.
+
+---
+
+## FancyProductDesigner
+
+**Kind:** global class
+**Extends:** EventTarget
+
+### Constructor
+
+#### new FancyProductDesigner(elem, [opts])
+Creates a new FancyProductDesigner.
+- Parameters:
+  - `elem` (HTMLElement): The container for the Fancy Product Designer.
+  - `[opts]` (Object): Options for configuration. Default `{}`.
+
+### Static Properties
+
+- FancyProductDesigner.additionalModules : Object
+  You can register your own modules and add them in this static property.
+  - Default: `{}`
+  - Example: `{'my-module': ModuleClass}`
+
+### Inner Properties
+- `~container` (HTMLElement): The container for the Fancy Product Designer.
+- `~mainOptions` (Object): The main options set for this Product Designer.
+- `~currentViewInstance` (FancyProductDesignerView): The current selected view instance.
+- `~currentViewIndex` (Number): The current selected view index.
+- `~products` (Array): Array containing all products.
+- `~designs` (Array): Array containing all designs.
+- `~currentElement` (fabric.Object): The current selected element.
+- `~currentPrice` (Number): The price considering the elements price in all views with order quantity.
+
+### Methods
+
+- setupDesigns(designs)
+  Set up the designs with a JSON.
+  - Parameters:
+    - `designs` (Array): An array containg the categories with designs.
+
+- addProduct(views, [category])
+  Adds a new product to the product designer.
+  - Parameters:
+    - `views` (array): An array containing the views for a product.
+    - `[category]` (string): If categories are used, you need to define the category title.
+
+- loadProduct(views, [onlyReplaceInitialElements], [mergeMainOptions])
+  Loads a new product to the product designer.
+
+- addView(view)
+  Adds a view to the current visible product.
+
+- getIndex() ⇒ Number
+  Gets the index of the view.
+
+- selectView(index)
+  Selects a view from the current visible views.
+
+- getElements([viewIndex], [elementType], [deselectElement]) ⇒ Array
+  Returns an array with fabricjs objects.
+
+- getCustomElements([type], [viewIndex], [deselectElement]) ⇒ array
+  Returns an array with all custom added elements.
+
+- reset()
+  Clears the product stage and resets everything.
+
+- deselectElement()
+  Deselects the selected element of the current showing view.
+
+- addCustomImage(source, title, options, [viewIndex])
+  Adds a new custom image to the product stage.
+
+- getProduct([onlyEditableElements], [customizationRequired]) ⇒ array
+  Returns the current showing product with all views and elements in the views.
+
+- getProductDataURL(callback, [options], [viewRange])
+  Creates all views in one data URL.
+
+- print()
+  Opens the current showing product in a Pop-up window and shows the print dialog.
+
+- getOrder([options]) ⇒ object
+  Returns an order object containing the product, usedFonts, and usedColors.
+
+- calculatePrice([considerQuantity]) ⇒ Number
+  Calculates the total price considering the elements price in all views and pricing rules.
+
+### Events
+- "ready": Gets fired as soon as product designer is ready.
+- "productAdd": Gets fired when a product is added.
+- "productSelect": Gets fired when a product is selected.
+- "elementAdd": Gets fired when an element is added.
+- "elementModify": Gets fired when an element is modified.
+- "priceChange": Gets fired as soon as the price changes in a view.
+- "viewSelect": Gets fired as soon as a view has been selected.
+
+---
+
+## FancyProductDesignerView
+
+**Kind:** global class
+**Extends:** EventTarget
+
+### Constructor
+
+#### new FancyProductDesignerView(container, [viewData], [callback], [fabricCanvasOptions])
+Creates a new FancyProductDesignerView.
+- Parameters:
+  - `container` (HTMLElement): The container for the Fancy Product Designer View.
+  - `[viewData]` (Object): The initial view data.
+  - `[callback]` (function): Callback when view is created.
+  - `[fabricCanvasOptions]` (Object): Options for fabricJS canvas.
+
+### Inner Properties
+- `~totalPrice` (Number): The total price for the view without max. price.
+- `~truePrice` (Number): The total price for the view including max. price and correct formatting.
+- `~additionalPrice` (Number): Additional price for the view.
+- `~mask` (Object): The properties for the mask object.
+
+### Methods
+
+- init()
+  This method needs to be called to initialize the generation.
+
+- loadElements(elements, callback)
+  Removes the current elements and loads a set of new elements into the view.
+  - Parameters:
+    - `elements` (Array): An array containing elements.
+    - `callback` (function): A function that will be called when all elements have been added.
+
+- toDataURL(callback, [options], [deselectElement])
+  Creates a data URL of the view.
+  - Parameters:
+    - `callback` (function): A function that will be called when the data URL is created.
+    - `[options]` (Object): Options object for data URL generation (`onlyExportable`, `backgroundColor`, etc.).
+    - `[deselectElement]` (Boolean): Deselect current selected element.
+
+- toSVG([options], [fontsToEmbed]) ⇒ String
+  Returns the view as SVG.
+  - Returns: String - A XML representing a SVG.
+
+- toggleLock(toggle) ⇒ Boolean
+  Toggles the lockment of view. If the view is locked, the price of the view will not be added to the total product price.
+
+- changePrice(price, operator) ⇒ Number
+  Changes the price by an operator, + or -.
+
+### Events
+- "priceChange": Gets fired as soon as the price has changed.
+
+---
+
+## FPDUtils
+
+**Kind:** global class
+
+A class with some static helper functions. You do not need to initiate the class, just call the methods directly, e.g. `FPDUtil.showModal();`
+
+### Static Methods
+
+- FPDUtils.arrayUnique(array) ⇒ Array
+  Makes an unique array.
+  - Returns: Array - Returns the edited array.
+  - Parameters:
+    - `array` (Array): The target array.
+
+- FPDUtils.showModal(htmlContent, [fullscreen], [type], [container])
+  Displays a modal dialog.
+  - Parameters:
+    - `htmlContent` (String): The html content for the modal.
+    - `[fullscreen]` (Boolean): Displays the modal in full screen. Default: `false`.
+    - `[type]` (String): Empty, 'prompt' or 'confirm'.
+    - `[container]` (HTMLElement): The container for the modal. Default: `document.body`.
+
+- FPDUtils.showMessage(text, [autoRemove])
+  Displays a message in a snackbar (bottom-left).
+  - Parameters:
+    - `text` (String): The text for the message.
+    - `[autoRemove]` (Boolean): Either to remove the message automatically or not. Default: `true`.
+
+- FPDUtils.isUrl(s) ⇒ Boolean
+  Checks if a string is an URL.
+  - Returns: Boolean - Returns true if string is an URL.
+  - Parameters:
+    - `s` (String): The string.
+
+- FPDUtils.pixelToUnit(pixel, [unit], [dpi]) ⇒ Boolean
+  Converts a pixel value to any metric value considering the DPI.
+  - Returns: Boolean - Returns true if string is an URL.
+  - Parameters:
+    - `pixel` (Number): The pixel value.
+    - `[unit]` (String): Target metric - 'inch', 'mm', 'cm'. Default: `'inch'`.
+    - `[dpi]` (Number): Target DPI. Default: `72`.
+
+---
+
+## fabric.Canvas
+
+**Kind:** API Reference Extension
+
+### Methods
+
+- `addElement(elements, [callback])` ⇐ `fabric.Canvas`
+  Adds a set of elements into the view.
+  - Parameters:
+    - `elements` (Array): An array containing elements.
+    - `[callback]` (function): A function that will be called when all elements have beed added.
+
+- `addElement(type, source, title, [parameters])` ⇐ `fabric.Canvas`
+  Adds a new element to the view.
+  - Parameters:
+    - `type` (string): The type of an element you would like to add, 'image' or 'text'.
+    - `source` (string): For image the URL to the image and for text elements the default text.
+    - `title` (string): Only required for image elements.
+    - `[parameters]` (object): An object with the parameters, you would like to apply on the element.
+
+- `resetSize(discardActiveObject)` ⇐ `fabric.Canvas`
+  Deselects the current selected element.
+
+- `resetSize()` ⇐ `fabric.Canvas`
+  Resets the canvas size considering the available space on the device.
+
+- `setResZoom(value)` ⇐ `fabric.Canvas`
+  Sets the zoom of the stage. 1 is equal to no zoom.
+
+- `resetZoom()` ⇐ `fabric.Canvas`
+  Resets the the zoom.
+
+- `getElements()` ⇒ Array
+  Returns an array with fabricjs objects.
+
+- `getElementsJSON(title)` ⇒ Object
+  Returns an fabric object by title.
+
+- `getElementByTitle(title)` ⇒ Object
+  Returns an fabric object by title.
+
+- `getElementByID(id)` ⇒ Object
+  Returns an fabric object by ID.
+
+- `reset()` ⇐ `fabric.Canvas`
+  Removes the canvas and resets all relevant view properties.
+
+- `removeElement(element)` ⇐ `fabric.Canvas`
+  Removes an element using the fabric object or the title of an element.
+  - Parameters:
+    - `element` (object | string): Needs to be a fabric object or the title of an element.
+
+- `getElementByReplace()` ⇐ `fabric.Canvas`
+  Gets an elment by replace property.
+
+- `setElementOptions(parameters, [element])` ⇐ `fabric.Canvas`
+  Sets the parameters for a specified element.
+  - Parameters:
+    - `parameters` (object): An object with the parameters that should be applied to the element.
+    - `[element]` (fabric.Object | string): A fabric object or the title of an element.
+
+- `duplicateElement(element)` ⇐ `fabric.Canvas`
+  Duplicates an element in the canvas.
+
+- `getUploadZone(title)` ⇒ fabric.Object
+  Gets an upload zone by title.
+
+- `setMask(maskOptions, [callback])` ⇐ `fabric.Canvas`
+  Use a SVG image as mask for the whole view. The image needs to be a SVG file with only one path. The method toSVG() does not include the mask.
+  - Parameters:
+    - `maskOptions` (Object | Null): An object containing the URL to the svg. Optional: scaleX, scaleY, left and top.
+    - `[callback]` (function): A function when mask is loaded and set. Returns the mask or null.
+
+---
+
+## Element (fabric.Object)
+
+**Kind:** API Reference Extension
+
+### Methods
+
+- `getType([fabricType])` ⇒ String
+  Gets the type of an element.
+  - Returns: String - The element type - text or image.
+
+- `isSVG()` ⇒ Boolean
+  Checks if the element is a SVG.
+
+- `isColorizable()` ⇒ Boolean
+  Checks if the element is colorizable.
+
+- `isBitmap()` ⇒ Boolean
+  Checks if the element is a bitmap image.
+
+- `hasColorSelection()` ⇒ Boolean
+  Checks if the element has a color selection.
+
+- `checkEditable(checkProps)` ⇒ Boolean
+  Checks if the element can be edited by the user.
+
+- `changeColor(colorData, [colorLinking])` ⇐ fabric.Canvas
+  Changes the color of an element.
+  - Parameters:
+    - `colorData` (String | Array): Hex color value or any array of hex color values.
+    - `[colorLinking]` (Boolean): If element is color linked, execute it.
+
+- `setPattern(patternUrl)` ⇐ fabric.Canvas
+  Sets the pattern for an element.
+
+- `getZIndex()` ⇒ Number
+  Gets the z-index of an element.
+
+- `centerElement([hCenter], [vCenter])` ⇐ fabric.Object
+  Centers an element horizontal or/and vertical.
+
+- `getBoundingBoxCoords(element)` ⇒ Object | Boolean
+  Returns the bounding box of an element.
+
+- `getClippingObject()` ⇒ Object | fabric.Object
+  Gets the object for the clipping. Could be an object with coordinates or a fabric.Object.
+
+- `getElementJSON([addPropertiesToInclude], [propertyKeys])` ⇒ Object
+  Gets the JSON representation of the element.
+  - Returns: Object - A JSON representation of the element.
+
+- `alignToPosition([pos])` ⇐ fabric.Canvas
+  Aligns an element. Allowed values: left, right, top or bottom.
+
+- `toggleUploadZone()` ⇐ fabric.Canvas
+  Toggles the visibility of an upload zone. The upload zone is visible if it contains an element and hidden when empty.
