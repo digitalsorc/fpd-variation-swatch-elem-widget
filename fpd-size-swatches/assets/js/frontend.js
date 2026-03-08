@@ -47,22 +47,62 @@
             let attempts = 0;
             const maxAttempts = 20; // 10 seconds max
 
-            const checkFPD = () => {
-                const fpdElement = document.querySelector(this.config.selector || '.fpd-main');
-                
-                // Check if FPD instance is available on window or jQuery data
-                let fpdInstance = window.fancyProductDesigner || (window.jQuery && window.jQuery(fpdElement).data('fancyProductDesigner'));
+            // If buttons were pre-rendered by PHP, bind them immediately
+            const existingBtns = this.swatchesContainer.querySelectorAll('.fpd-swatch');
+            if (existingBtns.length > 0) {
+                existingBtns.forEach(btn => {
+                    btn.addEventListener('click', () => this.selectSize(btn.getAttribute('data-value'), btn));
+                });
+            }
 
-                if (fpdElement && fpdInstance) {
-                    this.bindFPDEvents(fpdElement, fpdInstance);
+            const checkFPD = () => {
+                const fpdData = this.findFPDInstance();
+
+                if (fpdData && fpdData.instance) {
+                    console.log('[FPD Size Swatches] FPD Instance found!', fpdData.element);
+                    this.bindFPDEvents(fpdData.element, fpdData.instance);
                     // Trigger initial check if a product is already loaded
-                    setTimeout(() => this.handleProductChange(fpdInstance), 500);
+                    setTimeout(() => this.handleProductChange(fpdData.instance), 500);
                 } else if (attempts < maxAttempts) {
                     attempts++;
                     setTimeout(checkFPD, 500);
+                } else {
+                    console.warn('[FPD Size Swatches] Could not find FPD instance after 10 seconds.');
                 }
             };
             checkFPD();
+        }
+
+        /**
+         * Smartly find the FPD instance in the DOM.
+         */
+        findFPDInstance() {
+            // 1. Try the user-defined selector first, then common fallbacks
+            const selectors = [this.config.selector, '.fpd-container', '.fancy-product-designer', '#fpd', '.fpd-main'];
+            
+            for (let sel of selectors) {
+                if (!sel) continue;
+                const el = document.querySelector(sel);
+                if (el) {
+                    let instance = window.fancyProductDesigner || (window.jQuery && window.jQuery(el).data('fancyProductDesigner'));
+                    if (instance) return { element: el, instance: instance };
+                }
+            }
+
+            // 2. Desperate fallback: scan all divs for jQuery data
+            if (window.jQuery) {
+                let found = null;
+                window.jQuery('div').each(function() {
+                    let inst = window.jQuery(this).data('fancyProductDesigner');
+                    if (inst) {
+                        found = { element: this, instance: inst };
+                        return false; // break loop
+                    }
+                });
+                if (found) return found;
+            }
+
+            return null;
         }
 
         /**
@@ -73,7 +113,7 @@
         bindFPDEvents(fpdElement, fpdInstance) {
             // FPD triggers events on the container using jQuery
             if (window.jQuery) {
-                window.jQuery(fpdElement).on('productSelect productAdd ready', () => {
+                window.jQuery(fpdElement).on('productSelect productAdd ready viewSelect', () => {
                     this.handleProductChange(fpdInstance);
                 });
             } else {
@@ -99,6 +139,8 @@
             const productId = currentProduct.id || currentProduct.product_id;
             const productTitle = currentProduct.title;
 
+            console.log('[FPD Size Swatches] Active FPD Product:', { id: productId, title: productTitle });
+
             this.matchConfig(productId, productTitle);
         }
 
@@ -111,7 +153,8 @@
             let matchedConfig = null;
 
             for (const prodConfig of this.config.products) {
-                if (prodConfig.id && prodConfig.id == id) {
+                // Use loose string comparison to avoid type mismatch (e.g., 22 vs "22")
+                if (prodConfig.id && String(prodConfig.id) === String(id)) {
                     matchedConfig = prodConfig;
                     break;
                 }
@@ -123,15 +166,23 @@
                             break;
                         }
                     } catch (e) {
-                        console.error('Invalid regex pattern in FPD Size Swatches config', e);
+                        console.error('[FPD Size Swatches] Invalid regex pattern', e);
                     }
                 }
+            }
+
+            // SMART FALLBACK: If no exact match is found, but the user only defined ONE config, 
+            // assume they want to use it globally for whatever loads.
+            if (!matchedConfig && this.config.products.length === 1) {
+                console.log('[FPD Size Swatches] No exact ID/Title match, but only 1 config exists. Auto-selecting it.');
+                matchedConfig = this.config.products[0];
             }
 
             if (matchedConfig && matchedConfig.show_sizes) {
                 this.renderSizes(matchedConfig.sizes);
                 this.container.style.display = 'block';
             } else {
+                console.log('[FPD Size Swatches] No sizes configured for this product. Hiding widget.');
                 this.container.style.display = 'none';
                 this.clearSelection();
             }
