@@ -195,10 +195,10 @@
         bindFPDEvents($fpdElement, fpdInstance) {
             const self = this;
             
-            const handleEvent = (e) => {
-                const type = e && e.type ? e.type : 'unknown';
-                console.log('[FPD Size Swatches] FPD Event triggered:', type);
-                self.handleProductChange(fpdInstance, type);
+            const handleEvent = (e, arg1, arg2) => {
+                const type = e && e.type ? e.type : (typeof e === 'string' ? e : 'unknown');
+                console.log('[FPD Size Swatches] FPD Event triggered:', type, arg1, arg2);
+                self.handleProductChange(fpdInstance, type, arg1, arg2);
             };
 
             // 1. Event delegation on document.body (Survives DOM replacement when swapping products)
@@ -206,8 +206,8 @@
                 console.log('[FPD Size Swatches] Binding events via jQuery delegation on document.body...');
                 const selectors = '.fpd-container, .fancy-product-designer, #fpd, .fpd-main';
                 window.jQuery(document.body).off('ready productSelect productAdd productCreate viewSelect', selectors);
-                window.jQuery(document.body).on('ready productSelect productAdd productCreate viewSelect', selectors, function(e) {
-                    handleEvent(e);
+                window.jQuery(document.body).on('ready productSelect productAdd productCreate viewSelect', selectors, function(e, arg1, arg2) {
+                    handleEvent(e, arg1, arg2);
                 });
                 
                 // Fallback: Listen for clicks on FPD items (like product thumbnails)
@@ -221,9 +221,9 @@
             // 2. Also bind to the instance directly if supported
             if (fpdInstance && typeof fpdInstance.addEventListener === 'function') {
                 console.log('[FPD Size Swatches] Binding events directly to FPD instance...');
-                fpdInstance.addEventListener('ready', () => handleEvent({type: 'ready'}));
-                fpdInstance.addEventListener('productSelect', () => handleEvent({type: 'productSelect'}));
-                fpdInstance.addEventListener('productAdd', () => handleEvent({type: 'productAdd'}));
+                fpdInstance.addEventListener('ready', (arg1, arg2) => handleEvent({type: 'ready'}, arg1, arg2));
+                fpdInstance.addEventListener('productSelect', (arg1, arg2) => handleEvent({type: 'productSelect'}, arg1, arg2));
+                fpdInstance.addEventListener('productAdd', (arg1, arg2) => handleEvent({type: 'productAdd'}, arg1, arg2));
             }
         }
 
@@ -231,8 +231,10 @@
          * Handle FPD product change (Debounced to wait for FPD state to settle).
          * @param {Object} fpdInstance
          * @param {String} eventType
+         * @param {any} arg1
+         * @param {any} arg2
          */
-        handleProductChange(fpdInstance, eventType) {
+        handleProductChange(fpdInstance, eventType, arg1, arg2) {
             if (this.handleProductChangeTimeout) {
                 clearTimeout(this.handleProductChangeTimeout);
             }
@@ -241,55 +243,68 @@
                 let productId = null;
                 let productTitle = null;
 
-                // 1. Try to get the active product from FPD UI (Product Swap Module)
-                // We specifically look inside .fpd-products to avoid getting View titles (like "Front"/"Back")
-                if (window.jQuery) {
-                    const $activeItem = window.jQuery('.fpd-products .fpd-item.fpd-active');
-                    if ($activeItem.length) {
-                        productTitle = $activeItem.find('.fpd-item-title').text().trim() || $activeItem.attr('data-title') || $activeItem.data('title');
-                        productId = $activeItem.attr('data-id') || $activeItem.data('id') || $activeItem.attr('data-productid');
+                console.log('[FPD Size Swatches] DEBUG FPD State:', {
+                    currentProduct: fpdInstance ? fpdInstance.currentProduct : null,
+                    products: fpdInstance ? fpdInstance.products : null,
+                    options: fpdInstance ? fpdInstance.options : null,
+                    currentProductIndex: fpdInstance ? fpdInstance.currentProductIndex : null
+                });
+
+                // 1. Try to extract from event arguments (productSelect often passes the product)
+                if ((eventType === 'productSelect' || eventType === 'productCreate') && arg1 && typeof arg1 === 'object') {
+                    // arg1 might be an array of views, or a product object
+                    if (Array.isArray(arg1) && arg1.length > 0 && arg1[0].options) {
+                         // It's an array of views, the product title might be in the options
+                         productTitle = arg1[0].options.productTitle || productTitle;
+                    } else if (!Array.isArray(arg1)) {
+                         productId = arg1.id || arg1.product_id || productId;
+                         productTitle = arg1.title || productTitle;
                     }
                 }
 
                 // 2. Try FPD Instance properties
                 if (fpdInstance) {
-                    // Check if FPD has a currentProduct object
+                    // Try to get from the products array
+                    if (fpdInstance.products && fpdInstance.products.length > 0) {
+                        let activeIndex = fpdInstance.currentProductIndex || 0;
+                        let activeProduct = fpdInstance.products[activeIndex];
+                        if (activeProduct) {
+                            productId = productId || activeProduct.id || activeProduct.product_id;
+                            productTitle = productTitle || activeProduct.title;
+                        }
+                    }
+
+                    // Try currentProduct property
                     if (fpdInstance.currentProduct) {
                         productId = productId || fpdInstance.currentProduct.id || fpdInstance.currentProduct.product_id;
                         productTitle = productTitle || fpdInstance.currentProduct.title;
                     }
                     
-                    // Check FPD options (often contains the initial product ID)
+                    // Try options (often contains the initial product ID)
                     if (fpdInstance.options) {
                         productId = productId || fpdInstance.options.productId || fpdInstance.options.product_id;
                         productTitle = productTitle || fpdInstance.options.productTitle || fpdInstance.options.product_title;
                     }
+                }
 
-                    // Check getProducts() to find the active product
-                    if ((!productId || !productTitle) && typeof fpdInstance.getProducts === 'function') {
-                        try {
-                            const products = fpdInstance.getProducts();
-                            if (products && products.length > 0) {
-                                // FPD usually tracks the active product index
-                                let activeIndex = fpdInstance.currentProductIndex !== undefined ? fpdInstance.currentProductIndex : 
-                                                  (fpdInstance.productIndex !== undefined ? fpdInstance.productIndex : 0);
-                                
-                                const activeProduct = products[activeIndex] || products[0];
-                                productId = productId || activeProduct.id || activeProduct.product_id;
-                                productTitle = productTitle || activeProduct.title;
-                            }
-                        } catch (e) {
-                            console.error('[FPD Size Swatches] Error calling getProducts()', e);
-                        }
-                    }
+                // 3. Try to get the active product from FPD UI (Product Swap Module)
+                if (window.jQuery && (!productId || !productTitle)) {
+                    // Look for active items in the product list
+                    const $activeItems = window.jQuery('.fpd-item.fpd-active');
+                    $activeItems.each(function() {
+                        const $this = window.jQuery(this);
+                        // Ignore view items (they usually live inside .fpd-views)
+                        if ($this.closest('.fpd-views').length > 0) return;
+
+                        const pid = $this.attr('data-productid') || $this.attr('data-id') || $this.data('productid') || $this.data('id');
+                        const pt = $this.attr('data-title') || $this.data('title') || $this.find('.fpd-item-title').text().trim();
+                        
+                        if (pid) productId = productId || pid;
+                        if (pt) productTitle = productTitle || pt;
+                    });
                 }
 
                 console.log(`[FPD Size Swatches] Active Product detected (Event: ${eventType}):`, { id: productId, title: productTitle });
-
-                // Debugging helper: If we still couldn't find it, dump the available products to the console
-                if (!productId && !productTitle && fpdInstance && typeof fpdInstance.getProducts === 'function') {
-                    console.log('[FPD Size Swatches] DEBUG: Could not find active product ID/Title. Here are all loaded FPD products:', fpdInstance.getProducts());
-                }
 
                 // If we are in the Elementor editor, ALWAYS match the first config so the user can see it
                 if (this.isEditor && (!productId && !productTitle) && this.config.products && this.config.products.length > 0) {
