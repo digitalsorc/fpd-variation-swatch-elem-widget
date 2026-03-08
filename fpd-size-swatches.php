@@ -51,12 +51,16 @@ function fpd_size_swatches_register_widgets( $widgets_manager ) {
  * Enqueue frontend styles.
  */
 function fpd_size_swatches_enqueue_styles() {
-	wp_register_style( 'fpd-size-swatches', FPD_SIZE_SWATCHES_URL . 'assets/css/frontend.css', [], FPD_SIZE_SWATCHES_VERSION );
+	$css_path = FPD_SIZE_SWATCHES_DIR . 'assets/css/frontend.css';
+	$version = file_exists( $css_path ) ? filemtime( $css_path ) : FPD_SIZE_SWATCHES_VERSION;
+	wp_register_style( 'fpd-size-swatches', FPD_SIZE_SWATCHES_URL . 'assets/css/frontend.css', [], $version );
 }
 
 /**
  * Enqueue frontend scripts.
  */
 function fpd_size_swatches_enqueue_scripts() {
-	wp_register_script( 'fpd-size-swatches', FPD_SIZE_SWATCHES_URL . 'assets/js/frontend.js', [ 'jquery' ], FPD_SIZE_SWATCHES_VERSION, true );
+	$js_path = FPD_SIZE_SWATCHES_DIR . 'assets/js/frontend.js';
+	$version = file_exists( $js_path ) ? filemtime( $js_path ) : FPD_SIZE_SWATCHES_VERSION;
+	wp_register_script( 'fpd-size-swatches', FPD_SIZE_SWATCHES_URL . 'assets/js/frontend.js', [ 'jquery' ], $version, true );
 }
