@@ -49,20 +49,11 @@
             const maxAttempts = 40; // 20 seconds max
 
             const checkFPD = () => {
-                // Check if FPD instance is available globally (standard for FPD)
-                if (window.fancyProductDesigner && typeof window.fancyProductDesigner.getProducts === 'function') {
-                    console.log('[FPD Size Swatches] Global FPD Instance found!');
-                    this.bindFPDEvents(window.fancyProductDesigner);
-                    // Trigger initial check
-                    setTimeout(() => this.handleProductChange(window.fancyProductDesigner, 'init'), 500);
-                    return;
-                }
-
-                // Fallback: Check via jQuery data on common selectors
                 const fpdData = this.findFPDInstance();
+                
                 if (fpdData && fpdData.instance) {
-                    console.log('[FPD Size Swatches] FPD Instance found via jQuery!', fpdData.element);
-                    this.bindFPDEvents(fpdData.instance);
+                    console.log('[FPD Size Swatches] FPD Instance found!', fpdData.element);
+                    this.bindFPDEvents(fpdData.element, fpdData.instance);
                     // Trigger initial check
                     setTimeout(() => this.handleProductChange(fpdData.instance, 'init'), 500);
                 } else if (attempts < maxAttempts) {
@@ -81,12 +72,16 @@
         findFPDInstance() {
             const selectors = [this.config.selector, '.fpd-container', '.fancy-product-designer', '#fpd', '.fpd-main'];
             
+            if (!window.jQuery) return null;
+
             for (let sel of selectors) {
                 if (!sel) continue;
-                const el = document.querySelector(sel);
-                if (el && window.jQuery) {
-                    let instance = window.jQuery(el).data('fancyProductDesigner');
-                    if (instance) return { element: el, instance: instance };
+                const $el = window.jQuery(sel);
+                if ($el.length) {
+                    let instance = $el.data('fancyProductDesigner') || $el.data('fpd');
+                    if (instance) {
+                        return { element: $el, instance: instance };
+                    }
                 }
             }
             return null;
@@ -94,34 +89,32 @@
 
         /**
          * Bind FPD specific events.
+         * @param {jQuery} $fpdElement
          * @param {Object} fpdInstance
          */
-        bindFPDEvents(fpdInstance) {
+        bindFPDEvents($fpdElement, fpdInstance) {
             const self = this;
             
             const handleEvent = (e) => {
-                const type = e && e.type ? e.type : (typeof e === 'string' ? e : 'unknown');
+                const type = e && e.type ? e.type : 'unknown';
                 console.log('[FPD Size Swatches] FPD Event triggered:', type);
                 self.handleProductChange(fpdInstance, type);
             };
 
-            // 1. Bind directly to the FPD instance (Official API)
-            if (fpdInstance && typeof fpdInstance.addEventListener === 'function') {
-                console.log('[FPD Size Swatches] Binding events directly to FPD instance...');
-                // 'ready' fires when FPD is fully loaded
-                fpdInstance.addEventListener('ready', () => handleEvent('ready'));
-                // 'productSelect' fires when a user selects a different product from the module
-                fpdInstance.addEventListener('productSelect', () => handleEvent('productSelect'));
-                // 'productAdd' fires when a new product is added to the stage
-                fpdInstance.addEventListener('productAdd', () => handleEvent('productAdd'));
-            }
-
-            // 2. Bind to document body via jQuery delegation (Catches DOM events even if container is recreated)
-            if (window.jQuery) {
-                console.log('[FPD Size Swatches] Binding events to document body via jQuery...');
-                window.jQuery(document.body).on('productSelect productAdd ready', '.fpd-container, .fancy-product-designer, #fpd, .fpd-main', function(e) {
+            // Bind using jQuery on the FPD container element (Standard FPD behavior)
+            if ($fpdElement && $fpdElement.length) {
+                console.log('[FPD Size Swatches] Binding events to FPD container via jQuery...');
+                $fpdElement.on('ready productSelect productAdd', function(e) {
                     handleEvent(e);
                 });
+            }
+
+            // Also bind to the instance directly if supported
+            if (fpdInstance && typeof fpdInstance.addEventListener === 'function') {
+                console.log('[FPD Size Swatches] Binding events directly to FPD instance...');
+                fpdInstance.addEventListener('ready', () => handleEvent({type: 'ready'}));
+                fpdInstance.addEventListener('productSelect', () => handleEvent({type: 'productSelect'}));
+                fpdInstance.addEventListener('productAdd', () => handleEvent({type: 'productAdd'}));
             }
         }
 
@@ -141,19 +134,25 @@
                 let productId = null;
                 let productTitle = null;
 
-                // Official API: getProduct() returns the current showing product with all views
-                if (typeof fpdInstance.getProduct === 'function') {
+                // Try to get the active product title from the UI first (most reliable for product swaps)
+                if (window.jQuery) {
+                    const $activeItem = window.jQuery('.fpd-item.fpd-active');
+                    if ($activeItem.length) {
+                        productTitle = $activeItem.find('.fpd-item-title').text().trim() || $activeItem.attr('data-title');
+                        // Some setups store ID in data attribute
+                        productId = $activeItem.attr('data-id') || $activeItem.data('id');
+                    }
+                }
+
+                // Fallback to API methods
+                if (!productTitle && typeof fpdInstance.getProduct === 'function') {
                     try {
                         const currentProd = fpdInstance.getProduct();
-                        // FPD getProduct() usually returns an array of views, but the product info might be attached to it
                         if (currentProd) {
-                            // Sometimes it's an array, sometimes an object depending on FPD version
                             const prodData = Array.isArray(currentProd) && currentProd.length > 0 ? currentProd[0] : currentProd;
-                            
-                            // Try to extract ID and Title from the product data
                             if (prodData) {
-                                productId = prodData.id || prodData.product_id || prodData.productId;
-                                productTitle = prodData.title || prodData.productTitle;
+                                productId = productId || prodData.id || prodData.product_id || prodData.productId;
+                                productTitle = productTitle || prodData.title || prodData.productTitle;
                             }
                         }
                     } catch (e) {
@@ -161,16 +160,13 @@
                     }
                 }
 
-                // Official API Fallback: getProducts() returns an array with all products
-                // If we couldn't get the ID from getProduct(), try getProducts()
-                if (!productId && typeof fpdInstance.getProducts === 'function') {
+                if (!productTitle && typeof fpdInstance.getProducts === 'function') {
                     try {
                         const products = fpdInstance.getProducts();
                         if (products && products.length > 0) {
-                            // The active product is usually the first one in single-base setups
                             const currentProduct = products[0]; 
-                            productId = currentProduct.id || currentProduct.product_id;
-                            productTitle = currentProduct.title;
+                            productId = productId || currentProduct.id || currentProduct.product_id;
+                            productTitle = productTitle || currentProduct.title;
                         }
                     } catch (e) {
                         console.error('[FPD Size Swatches] Error calling getProducts()', e);
@@ -186,7 +182,7 @@
                     this.container.style.display = 'none';
                     this.clearSelection();
                 }
-            }, 500); // 500ms delay ensures FPD has finished loading the new product before we check the ID
+            }, 500);
         }
 
         /**
@@ -201,7 +197,6 @@
             console.log('[FPD Size Swatches] Available configs:', this.config.products);
 
             for (const prodConfig of this.config.products) {
-                // Use loose string comparison to avoid type mismatch (e.g., 22 vs "22")
                 if (prodConfig.id && String(prodConfig.id) === String(id)) {
                     console.log('[FPD Size Swatches] Matched by ID:', prodConfig.id);
                     matchedConfig = prodConfig;
@@ -246,7 +241,6 @@
             this.currentSizes = sizes;
             this.swatchesContainer.innerHTML = '';
             
-            // If the previously selected size is not in the new list, clear it
             const sizeExists = sizes.some(s => s.value === this.selectedSize);
             if (!sizeExists) {
                 this.clearSelection();
@@ -310,13 +304,10 @@
         bindEvents() {
             if (this.cartForm) {
                 this.cartForm.addEventListener('submit', (e) => {
-                    // Only validate if widget is visible and required
                     if (this.container.style.display !== 'none' && this.config.required) {
                         if (!this.selectedSize) {
                             e.preventDefault();
                             this.errorMsg.style.display = 'block';
-                            
-                            // Scroll to widget
                             this.container.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         }
                     }
@@ -325,14 +316,30 @@
         }
     }
 
-    // Initialize widgets on Elementor frontend load
-    window.addEventListener('elementor/frontend/init', () => {
-        elementorFrontend.hooks.addAction('frontend/element_ready/fpd_size_swatches.default', function($scope) {
-            const widgetContainer = $scope[0].querySelector('.fpd-sizes-swatches');
-            if (widgetContainer) {
-                new FPDSizeSwatches(widgetContainer);
+    function initFPDSizeSwatches() {
+        const widgets = document.querySelectorAll('.fpd-sizes-swatches:not(.fpd-initialized)');
+        widgets.forEach(widget => {
+            widget.classList.add('fpd-initialized');
+            new FPDSizeSwatches(widget);
+        });
+    }
+
+    // Run on DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initFPDSizeSwatches);
+    } else {
+        initFPDSizeSwatches();
+    }
+
+    // Also hook into Elementor for editor/dynamic loading
+    if (typeof jQuery !== 'undefined') {
+        jQuery(window).on('elementor/frontend/init', function() {
+            if (window.elementorFrontend && window.elementorFrontend.hooks) {
+                window.elementorFrontend.hooks.addAction('frontend/element_ready/fpd_size_swatches.default', function($scope) {
+                    initFPDSizeSwatches();
+                });
             }
         });
-    });
+    }
 
 })();
