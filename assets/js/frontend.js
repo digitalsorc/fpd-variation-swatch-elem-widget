@@ -22,8 +22,22 @@
             this.isEditor = document.body.classList.contains('elementor-editor-active') || window.location.href.includes('elementor-preview');
 
             this.initHiddenInput();
+            this.bindPreRenderedButtons();
             this.bindEvents();
             this.waitForFPD();
+        }
+
+        /**
+         * Bind events to any buttons pre-rendered by PHP
+         */
+        bindPreRenderedButtons() {
+            const btns = this.swatchesContainer.querySelectorAll('.fpd-swatch');
+            if (btns.length > 0) {
+                console.log('[FPD Size Swatches] Found pre-rendered buttons:', btns.length);
+                btns.forEach(btn => {
+                    btn.addEventListener('click', () => this.selectSize(btn.getAttribute('data-value'), btn));
+                });
+            }
         }
 
         /**
@@ -228,8 +242,12 @@
                 if (productId || productTitle) {
                     this.matchConfig(productId, productTitle);
                 } else {
-                    console.warn('[FPD Size Swatches] Could not determine active product ID or Title. Hiding widget.');
-                    this.hideWidget();
+                    console.warn('[FPD Size Swatches] Could not determine active product ID or Title.');
+                    if (this.config.default_visibility !== 'show') {
+                        this.hideWidget();
+                    } else {
+                        console.log('[FPD Size Swatches] Default visibility is show, keeping widget visible.');
+                    }
                 }
             }, 500);
         }
